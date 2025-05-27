@@ -1,5 +1,4 @@
 import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'react-router-dom';
-import { createBrowserRouter, RouterProvider } from 'react-router-dom';
 import './App.css';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 
@@ -40,7 +39,7 @@ function App() {
           {/* Public Routes */}
           <Route path="/login" element={<Login />} />
           <Route path="/admin-setup" element={<AdminSetup />} />
-          
+
           {/* Protected Teacher Routes */}
           <Route path="/teacher" element={
             <ProtectedRoute requiredRoles={['teacher']}>
@@ -53,9 +52,11 @@ function App() {
             </ProtectedRoute>
           } />
           <Route path="/teacher/debug" element={
-            <TeacherDebug />
+            <ProtectedRoute requiredRoles={['teacher']}>
+              <TeacherDebug />
+            </ProtectedRoute>
           } />
-          
+
           {/* Protected Admin Routes */}
           <Route path="/admin" element={
             <ProtectedRoute requiredRoles={['admin']}>
@@ -77,7 +78,7 @@ function App() {
               <AttendanceRecords />
             </ProtectedRoute>
           } />
-          
+
           {/* Redirect to login if not authenticated */}
           <Route path="/" element={<Navigate to="/login" />} />
           <Route path="*" element={<Navigate to="/login" />} />

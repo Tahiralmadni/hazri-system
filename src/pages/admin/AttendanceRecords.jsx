@@ -26,36 +26,41 @@ function AttendanceRecords() {
   const [records, setRecords] = useState([]);
   const [teachers, setTeachers] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
-  const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]); // Default to today
+  const [selectedDate, setSelectedDate] = useState(''); // Default to empty (show all dates)
   const [selectedStatus, setSelectedStatus] = useState('all');
   const [selectedTeacher, setSelectedTeacher] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  
+
   const { currentUser, logout } = useAuth();
   const navigate = useNavigate();
-  
+
   // Load data on component mount
   useEffect(() => {
     const loadData = async () => {
       setIsLoading(true);
       try {
+        console.log('Loading attendance records and teachers...');
+
         // Load teachers
         const teachersData = await getTeachers();
+        console.log('Loaded teachers:', teachersData.length);
         setTeachers(teachersData);
-        
+
         // Load attendance records
         const attendanceData = await getAllAttendance();
+        console.log('Loaded attendance records:', attendanceData.length);
         setRecords(attendanceData);
       } catch (error) {
         console.error('Error loading data:', error);
+        alert('ڈیٹا لوڈ کرنے میں خرابی ہوئی ہے۔ براہ کرم صفحہ ریفریش کریں۔');
       } finally {
         setIsLoading(false);
       }
     };
-    
+
     loadData();
   }, []);
-  
+
   // Handle logout
   const handleLogout = async () => {
     try {
@@ -74,13 +79,13 @@ function AttendanceRecords() {
     const matchesTeacher = selectedTeacher ? record.teacherId === selectedTeacher : true;
     return matchesSearch && matchesDate && matchesStatus && matchesTeacher;
   });
-  
+
   // Group records by teacher for the selected date
   const getTeacherNameById = (id) => {
     const teacher = teachers.find(t => t.id === id);
     return teacher ? teacher.name : 'Unknown';
   };
-  
+
   // Calculate total salary deductions
   const totalSalaryDeduction = filteredRecords.reduce((total, record) => {
     return total + (record.salaryDeduction || 0);
@@ -94,7 +99,7 @@ function AttendanceRecords() {
           <p>برائے مہربانی انتظار کریں...</p>
         </div>
       )}
-      
+
       {/* Navigation */}
       <nav className="admin-nav">
         <div className="admin-nav-brand">
@@ -119,7 +124,7 @@ function AttendanceRecords() {
           </button>
         </div>
       </nav>
-      
+
       {/* Header */}
       <header className="dashboard-header">
         <div className="dashboard-title">
@@ -130,19 +135,30 @@ function AttendanceRecords() {
           <div className="filter-row">
             <div className="filter-group">
               <label htmlFor="date"><i className="fas fa-calendar-day"></i> تاریخ:</label>
-              <input 
-                type="date" 
-                id="date" 
-                value={selectedDate} 
-                onChange={(e) => setSelectedDate(e.target.value)} 
+              <input
+                type="date"
+                id="date"
+                value={selectedDate}
+                onChange={(e) => setSelectedDate(e.target.value)}
                 className="filter-input"
+                placeholder="تمام تاریخیں"
               />
+              {selectedDate && (
+                <button
+                  type="button"
+                  onClick={() => setSelectedDate('')}
+                  className="clear-filter-btn"
+                  title="تمام تاریخیں دکھائیں"
+                >
+                  <i className="fas fa-times"></i>
+                </button>
+              )}
             </div>
             <div className="filter-group">
               <label htmlFor="teacher"><i className="fas fa-chalkboard-teacher"></i> استاد:</label>
-              <select 
-                id="teacher" 
-                value={selectedTeacher} 
+              <select
+                id="teacher"
+                value={selectedTeacher}
                 onChange={(e) => setSelectedTeacher(e.target.value)}
                 className="filter-input"
               >
@@ -154,9 +170,9 @@ function AttendanceRecords() {
             </div>
             <div className="filter-group">
               <label htmlFor="status"><i className="fas fa-clipboard-check"></i> حالت:</label>
-              <select 
-                id="status" 
-                value={selectedStatus} 
+              <select
+                id="status"
+                value={selectedStatus}
                 onChange={(e) => setSelectedStatus(e.target.value)}
                 className="filter-input"
               >
@@ -170,19 +186,53 @@ function AttendanceRecords() {
           <div className="filter-row">
             <div className="filter-group search-group">
               <label htmlFor="search"><i className="fas fa-search"></i> تلاش:</label>
-              <input 
-                type="text" 
-                id="search" 
-                placeholder="استاد کا نام تلاش کریں..." 
-                value={searchTerm} 
+              <input
+                type="text"
+                id="search"
+                placeholder="استاد کا نام تلاش کریں..."
+                value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="filter-input"
               />
             </div>
+            <div className="filter-group">
+              <button
+                onClick={() => window.location.reload()}
+                className="refresh-button"
+                disabled={isLoading}
+              >
+                <i className={`fas fa-sync ${isLoading ? 'fa-spin' : ''}`}></i> ریفریش
+              </button>
+            </div>
           </div>
         </div>
       </header>
-      
+
+      {/* Active Filters Indicator */}
+      {(selectedDate || selectedTeacher || selectedStatus !== 'all' || searchTerm) && (
+        <div className="active-filters-indicator">
+          <div className="filter-info">
+            <i className="fas fa-filter"></i>
+            <span>فعال فلٹرز:</span>
+            {selectedDate && <span className="filter-tag">تاریخ: {selectedDate}</span>}
+            {selectedTeacher && <span className="filter-tag">استاد: {teachers.find(t => t.id === selectedTeacher)?.name}</span>}
+            {selectedStatus !== 'all' && <span className="filter-tag">حالت: {selectedStatus === 'present' ? 'حاضر' : selectedStatus === 'absent' ? 'غیر حاضر' : 'چھٹی'}</span>}
+            {searchTerm && <span className="filter-tag">تلاش: {searchTerm}</span>}
+          </div>
+          <button
+            onClick={() => {
+              setSelectedDate('');
+              setSelectedTeacher('');
+              setSelectedStatus('all');
+              setSearchTerm('');
+            }}
+            className="clear-all-filters-btn"
+          >
+            <i className="fas fa-times"></i> تمام فلٹرز صاف کریں
+          </button>
+        </div>
+      )}
+
       {/* Summary Cards */}
       <div className="summary-cards">
         <div className="summary-card">
@@ -285,4 +335,4 @@ function AttendanceRecords() {
   );
 }
 
-export default AttendanceRecords; 
+export default AttendanceRecords;

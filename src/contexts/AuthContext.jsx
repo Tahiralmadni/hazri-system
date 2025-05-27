@@ -302,7 +302,7 @@ export const AuthProvider = ({ children }) => {
         window.removeEventListener(event, refreshOnActivity);
       });
     };
-  }, [currentUser]);
+  }, []); // Removed currentUser from dependencies
 
   // Value to provide through context
   const value = {

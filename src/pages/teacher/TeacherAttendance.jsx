@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { getTeacherAttendance, getAttendanceSummary, getTeacher } from '../../services/firebase';
 import '../../App.css';
@@ -33,7 +33,7 @@ const getCurrentMonthYear = () => {
 
 function TeacherAttendance() {
   const { month: currentMonth, year: currentYear } = getCurrentMonthYear();
-  
+
   const [records, setRecords] = useState([]);
   const [summary, setSummary] = useState(null);
   const [teacherData, setTeacherData] = useState(null);
@@ -42,10 +42,13 @@ function TeacherAttendance() {
   const [selectedStatus, setSelectedStatus] = useState('all');
   const [isLoading, setIsLoading] = useState(false);
   const [errorState, setErrorState] = useState(false);
-  
+  const [loadingError, setLoadingError] = useState(null);
+  const [showAllMonths, setShowAllMonths] = useState(false);
+
   const { currentUser, logout } = useAuth();
   const navigate = useNavigate();
-  
+  const location = useLocation();
+
   // Generate array of months for select dropdown
   const months = [
     { value: 1, label: 'جنوری' },
@@ -61,65 +64,87 @@ function TeacherAttendance() {
     { value: 11, label: 'نومبر' },
     { value: 12, label: 'دسمبر' }
   ];
-  
+
   // Generate array of years (current year - 2 to current year + 1)
   const years = [];
   for (let i = currentYear - 2; i <= currentYear + 1; i++) {
     years.push(i);
   }
-  
+
   // Force clear loading state after component mount
   useEffect(() => {
     const timer = setTimeout(() => {
       setIsLoading(false);
     }, 3000); // Force clear after 3 seconds
-    
+
     return () => clearTimeout(timer);
   }, []);
-  
-  // Load attendance data when teacher or selected month/year changes
+
+  // Function to load attendance data and teacher info
+  const loadAttendanceData = async () => {
+    if (!currentUser?.id) {
+      setErrorState(true);
+      return;
+    }
+
+    setIsLoading(true);
+    setLoadingError(null); // Clear previous errors on re-fetch
+
+    try {
+      // Load teacher data first
+      const teacher = await getTeacher(currentUser.id);
+      if (teacher) {
+        setTeacherData(teacher);
+      } else {
+        console.error("Teacher data not found");
+        setErrorState(true);
+        throw new Error("استاد کی معلومات نہیں ملی۔"); // Specific error
+      }
+
+      // Get all attendance records
+      console.log("Fetching attendance records for teacher ID:", currentUser.id); // Debug log
+      const attendanceRecords = await getTeacherAttendance(currentUser.id);
+      console.log("Result of getTeacherAttendance:", attendanceRecords); // Debug log
+      setRecords(attendanceRecords || []);
+
+      // Get attendance summary for selected month/year
+      const monthlySummary = await getAttendanceSummary(
+        currentUser.id,
+        selectedMonth,
+        selectedYear
+      );
+      setSummary(monthlySummary);
+    } catch (error) {
+      console.error('Error loading attendance data:', error);
+      setErrorState(true);
+      // Set specific error message
+      setLoadingError(error.message || "ڈیٹا لوڈ کرنے میں نامعلوم خرabi ہوئی ہے۔");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Load attendance data when teacher, selected month/year, location, or navigation state changes
   useEffect(() => {
-    const loadAttendanceData = async () => {
-      if (!currentUser?.id) {
-        setErrorState(true);
-        return;
-      }
-      
-      try {
-        // Load teacher data first
-        const teacher = await getTeacher(currentUser.id);
-        if (teacher) {
-          setTeacherData(teacher);
-        } else {
-          console.error("Teacher data not found");
-          setErrorState(true);
-          throw new Error("استاد کی معلومات نہیں ملی۔"); // Specific error
-        }
-        
-        // Get all attendance records
-        const attendanceRecords = await getTeacherAttendance(currentUser.id);
-        setRecords(attendanceRecords || []);
-        
-        // Get attendance summary for selected month/year
-        const monthlySummary = await getAttendanceSummary(
-          currentUser.id,
-          selectedMonth,
-          selectedYear
-        );
-        setSummary(monthlySummary);
-      } catch (error) {
-        console.error('Error loading attendance data:', error);
-        setErrorState(true);
-        // Set specific error message
-        setLoadingError(error.message || "ڈیٹا لوڈ کرنے میں نامعلوم خرابی ہوئی ہے۔"); 
-      } finally {
-        setIsLoading(false);
-      }
-    };
-    
+    const shouldRefresh = location.state?.refreshAttendance;
+
+    if (shouldRefresh) {
+      console.log("Refreshing attendance data due to navigation state.");
+      loadAttendanceData();
+      // Clear the navigation state to prevent unnecessary refetches
+      window.history.replaceState({}, document.title);
+    } else {
+      console.log("Loading attendance data normally.");
+      loadAttendanceData();
+    }
+
+  }, [currentUser, selectedMonth, selectedYear, location.pathname]); // Removed location.state to prevent infinite loops
+
+  // Handle manual refresh
+  const handleRefresh = () => {
     loadAttendanceData();
-  }, [currentUser, selectedMonth, selectedYear]);
-  
+  };
+
   // Handle logout
   const handleLogout = async () => {
     try {
@@ -129,37 +154,42 @@ function TeacherAttendance() {
       console.error('Failed to log out', error);
     }
   };
-  
+
   // Filter records based on selected month, year, and status
   const filteredRecords = records.filter((record) => {
     // Extract month and year from record date
     if (!record.date) {
       return false;
     }
-    
+
     const [recordYear, recordMonth] = record.date.split('-').map(Number);
-    
-    const matchesMonthYear = (
-      recordMonth === selectedMonth && 
+
+    const matchesMonthYear = showAllMonths ? true : (
+      recordMonth === selectedMonth &&
       recordYear === selectedYear
     );
-    
-    const matchesStatus = selectedStatus === 'all' ? 
+
+    const matchesStatus = selectedStatus === 'all' ?
       true : record.status === selectedStatus;
-    
+
     return matchesMonthYear && matchesStatus;
   });
-  
+
   // Calculate statistics for filtered records
   const presentDays = filteredRecords.filter(r => r.status === 'present').length;
   const leaveDays = filteredRecords.filter(r => r.status === 'leave').length;
   const absentDays = filteredRecords.filter(r => r.status === 'absent').length;
-  
+
   // Calculate total salary deductions
   const totalSalaryDeduction = filteredRecords.reduce((total, record) => {
     return total + (record.salaryDeduction || 0);
   }, 0);
-  
+
+  // Calculate final salary for visible records
+  const calculatedFinalSalary = teacherData?.monthlySalary 
+    ? Math.max(0, teacherData.monthlySalary - totalSalaryDeduction)
+    : 0;
+
   // Get month name
   const getMonthName = (monthNum) => {
     const month = months.find(m => m.value === monthNum);
@@ -174,7 +204,7 @@ function TeacherAttendance() {
           <p>برائے مہربانی انتظار کریں...</p>
         </div>
       )}
-      
+
       {errorState && (
         <div className="error-container">
           <div className="error-message-box">
@@ -192,7 +222,7 @@ function TeacherAttendance() {
           </div>
         </div>
       )}
-      
+
       {/* Navigation */}
       <nav className="admin-nav teacher-nav">
         <div className="admin-nav-brand">
@@ -214,7 +244,7 @@ function TeacherAttendance() {
           </button>
         </div>
       </nav>
-      
+
       {/* Header */}
       <header className="dashboard-header">
         <div className="dashboard-title">
@@ -225,12 +255,20 @@ function TeacherAttendance() {
           <div className="filter-row">
             <div className="filter-group">
               <label htmlFor="month"><i className="fas fa-calendar-alt"></i> مہینہ:</label>
-              <select 
-                id="month" 
-                value={selectedMonth} 
-                onChange={(e) => setSelectedMonth(Number(e.target.value))}
+              <select
+                id="month"
+                value={showAllMonths ? "all" : selectedMonth}
+                onChange={(e) => {
+                  if (e.target.value === "all") {
+                    setShowAllMonths(true);
+                  } else {
+                    setShowAllMonths(false);
+                    setSelectedMonth(Number(e.target.value));
+                  }
+                }}
                 className="filter-input"
               >
+                <option value="all">تمام مہینے</option>
                 {months.map((month) => (
                   <option key={month.value} value={month.value}>{month.label}</option>
                 ))}
@@ -238,9 +276,9 @@ function TeacherAttendance() {
             </div>
             <div className="filter-group">
               <label htmlFor="year"><i className="fas fa-calendar-day"></i> سال:</label>
-              <select 
-                id="year" 
-                value={selectedYear} 
+              <select
+                id="year"
+                value={selectedYear}
                 onChange={(e) => setSelectedYear(Number(e.target.value))}
                 className="filter-input"
               >
@@ -251,9 +289,9 @@ function TeacherAttendance() {
             </div>
             <div className="filter-group">
               <label htmlFor="status"><i className="fas fa-filter"></i> حالت:</label>
-              <select 
-                id="status" 
-                value={selectedStatus} 
+              <select
+                id="status"
+                value={selectedStatus}
                 onChange={(e) => setSelectedStatus(e.target.value)}
                 className="filter-input"
               >
@@ -264,6 +302,15 @@ function TeacherAttendance() {
               </select>
             </div>
           </div>
+          <div className="filter-group">
+            <button
+              className="action-button"
+              onClick={handleRefresh}
+              disabled={isLoading} // Disable refresh while loading
+            >
+              <i className={`fas fa-sync ${isLoading ? 'fa-spin' : ''}`}></i> ریفریش
+            </button>
+          </div>
         </div>
       </header>
 
@@ -272,7 +319,7 @@ function TeacherAttendance() {
         <div className="summary-card">
           <i className="fas fa-calendar-check summary-icon"></i>
           <h3>کل دن</h3>
-          <p>{summary?.workingDays || '0'}</p>
+          <p>{showAllMonths ? filteredRecords.length : summary?.workingDays || '0'}</p>
         </div>
         <div className="summary-card">
           <i className="fas fa-check-circle summary-icon"></i>
@@ -296,42 +343,13 @@ function TeacherAttendance() {
         </div>
       </div>
 
-      {/* Monthly Summary */}
-      <div className="summary-section">
-        <h3 className="section-title">
-          <i className="fas fa-calendar-alt"></i> 
-          {getMonthName(selectedMonth)} {selectedYear} کا خلاصہ
-        </h3>
-        
-        <div className="salary-summary">
-          <div className="summary-item">
-            <div className="summary-label">اصل تنخواہ:</div>
-            <div className="summary-value">Rs. {teacherData?.monthlySalary?.toLocaleString() || '0'}</div>
-          </div>
-          <div className="summary-item">
-            <div className="summary-label">کل کٹوتی:</div>
-            <div className="summary-value deduction">- Rs. {summary?.totalDeductions?.toLocaleString() || '0'}</div>
-          </div>
-          <div className="divider"></div>
-          <div className="summary-item total">
-            <div className="summary-label">حتمی تنخواہ:</div>
-            <div className="summary-value">Rs. {summary?.finalSalary?.toLocaleString() || '0'}</div>
-          </div>
-        </div>
-        
-        <div className="note-box">
-          <i className="fas fa-info-circle"></i>
-          <p>صرف چھٹی اور غیر حاضری پر تنخواہ میں کٹوتی ہوتی ہے، دیر سے آنے پر کوئی کٹوتی نہیں ہوتی</p>
-        </div>
-      </div>
-
       {/* Attendance Records Table */}
       <div className="table-container">
         <h3 className="section-title">
-          <i className="fas fa-list"></i> 
-          حاضری کا تفصیلی ریکارڈ
+          <i className="fas fa-list"></i>
+          {showAllMonths ? 'تمام حاضری ریکارڈز' : `${getMonthName(selectedMonth)} ${selectedYear} حاضری کا تفصیلی ریکارڈ`}
         </h3>
-        
+
         <table className="data-table">
           <thead>
             <tr>

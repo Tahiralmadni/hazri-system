@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
-import { addAttendanceRecord, getTeacher, getTeacherAttendance, getTeachers } from '../../services/firebase';
+import { addAttendanceRecord, getTeacher, getTeacherAttendance, getTeacherAttendanceSimple, getTeachers, debugGetAllAttendance } from '../../services/firebase';
 import '../../App.css';
 
 // Function to format time in 12-hour format (AM/PM)
@@ -38,14 +38,14 @@ const calculateWorkHours = (checkIn, checkOut) => {
 // Function to calculate salary deduction for lateness and leaves
 const calculateSalaryDeduction = (status, monthlySalary, checkIn, startTime) => {
   if (!monthlySalary) return 0;
-  
+
   // Calculate daily salary (assuming 30 days in a month)
   const dailySalary = monthlySalary / 30;
-  
+
   // Calculate hourly salary (assuming 8 hours per day)
   const hourlySalary = dailySalary / 8;
   const minuteSalary = hourlySalary / 60; // Salary per minute
-  
+
   if (status === 'leave') {
     // 50% deduction for leave
     const deduction = dailySalary * 0.5;
@@ -57,7 +57,7 @@ const calculateSalaryDeduction = (status, monthlySalary, checkIn, startTime) => 
     // Calculate minutes late
     const checkInMinutes = timeToMinutes(checkIn);
     const startTimeMinutes = timeToMinutes(startTime);
-    
+
     // If late, deduct based on minutes late
     if (checkInMinutes > startTimeMinutes) {
       const minutesLate = checkInMinutes - startTimeMinutes;
@@ -65,7 +65,7 @@ const calculateSalaryDeduction = (status, monthlySalary, checkIn, startTime) => 
       return deduction;
     }
   }
-  
+
   return 0; // No deduction if on time
 };
 
@@ -89,26 +89,26 @@ function TeacherDashboard() {
   });
   const [errorState, setErrorState] = useState(false);
   const [loadingError, setLoadingError] = useState(null);
-  
+
   const { currentUser, logout } = useAuth();
   const navigate = useNavigate();
-  
+
   // Force clear loading state after component mount
   useEffect(() => {
     const timer = setTimeout(() => {
       setIsLoading(false);
     }, 3000); // Force clear after 3 seconds
-    
+
     return () => clearTimeout(timer);
   }, []);
-  
+
   // Load teacher data and attendance records
   useEffect(() => {
     const loadTeacherData = async () => {
       console.log("Starting to load teacher data...");
       setIsLoading(true);
       setLoadingError(null);
-      
+
       // Add a timeout to prevent infinite loading
       const loadingTimeout = setTimeout(() => {
         setIsLoading(false);
@@ -116,19 +116,19 @@ function TeacherDashboard() {
         console.error('Loading timeout reached - forcing loading state to complete');
         // Force redirect to login on timeout
         logout().then(() => navigate('/login'));
-      }, 15000); // 15 seconds timeout
-      
+      }, 30000); // 30 seconds timeout
+
       try {
         if (!currentUser || !currentUser.id) {
           console.error('No valid current user available:', currentUser);
           setErrorState(true);
           throw new Error("صارف کی معلومات دستیاب نہیں ہیں۔");
         }
-        
+
         // Debug current user info
         console.log("Current user data:", JSON.stringify(currentUser));
         console.log("Fetching teacher data with ID:", currentUser.id);
-        
+
         try {
           // Force login refresh
           const storedUser = JSON.parse(localStorage.getItem('currentUser'));
@@ -138,17 +138,17 @@ function TeacherDashboard() {
         } catch (e) {
           console.error("Error reading localStorage:", e);
         }
-        
+
         // Try to list all teachers first
         try {
           const allTeachers = await getTeachers();
-          console.log("Found teachers in database:", 
+          console.log("Found teachers in database:",
             allTeachers.map(t => ({ id: t.id, name: t.name, username: t.username })));
-          
+
           // Check if current teacher's ID exists in the list
           const teacherExists = allTeachers.some(t => t.id === currentUser.id);
           console.log(`Current teacher ID ${currentUser.id} exists in teachers list: ${teacherExists}`);
-          
+
           // Try to find teacher by username if ID doesn't match
           if (!teacherExists) {
             const matchByUsername = allTeachers.find(t => t.username === currentUser.username);
@@ -164,23 +164,23 @@ function TeacherDashboard() {
         } catch (listError) {
           console.error("Error listing teachers:", listError);
         }
-        
+
         // Load teacher data
         const teacher = await getTeacher(currentUser.id);
-        
+
         if (!teacher) {
           console.error('Teacher data not found for ID:', currentUser.id);
           setErrorState(true);
           throw new Error("استاد کی معلومات نہیں ملی۔");
         }
-        
+
         console.log("Teacher data loaded successfully:", teacher);
         setTeacherData(teacher);
-        
+
         // Load attendance records with reliable method
         console.log("Fetching attendance records for teacher ID:", currentUser.id);
         const records = await getTeacherAttendance(currentUser.id);
-        
+
         if (Array.isArray(records)) {
           console.log(`Successfully loaded ${records.length} attendance records`);
           // Sort records by date (newest first)
@@ -188,7 +188,7 @@ function TeacherDashboard() {
             return new Date(b.date) - new Date(a.date);
           });
           setAttendanceRecords(sortedRecords);
-          
+
           // Check if there's already a record for today
           const todayRec = sortedRecords.find(r => r.date === today);
           if (todayRec) {
@@ -209,19 +209,19 @@ function TeacherDashboard() {
         setIsLoading(false);
       }
     };
-    
+
     loadTeacherData();
   }, [currentUser, today, refreshKey]);
-  
+
   // Update time every minute
   useEffect(() => {
     const timer = setInterval(() => {
       setCurrentTime(new Date());
     }, 60000);
-    
+
     return () => clearInterval(timer);
   }, []);
-  
+
   // Handle logout
   const handleLogout = async () => {
     try {
@@ -231,57 +231,57 @@ function TeacherDashboard() {
       console.error('Failed to log out', error);
     }
   };
-  
+
   // Handle form input changes
   const handleInputChange = (e) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
-    
+
     // If check-in or check-out changes, calculate hours
     if (name === 'checkIn' || name === 'checkOut') {
       const checkIn = name === 'checkIn' ? value : formData.checkIn;
       const checkOut = name === 'checkOut' ? value : formData.checkOut;
-      
+
       if (checkIn && checkOut) {
         const workHours = calculateWorkHours(checkIn, checkOut);
         setFormData(prev => ({ ...prev, workHours }));
       }
     }
   };
-  
+
   // Handle form submission
   const handleAttendanceSubmit = async (e) => {
     e.preventDefault();
     setIsLoading(true);
-    
+
     try {
       // Calculate work hours
       const workHours = calculateWorkHours(formData.checkIn, formData.checkOut);
-      
+
       // Get standard starting time
       const startTime = teacherData?.workingHours?.startTime || '08:00';
-      
+
       // Calculate salary deduction
       const salaryDeduction = calculateSalaryDeduction(
-        formData.status, 
+        formData.status,
         teacherData?.monthlySalary || 0,
         formData.checkIn,
         startTime
       );
-      
+
       // Determine if check-in is late (only applicable for present status)
-      const isLate = formData.status === 'present' && 
+      const isLate = formData.status === 'present' &&
         timeToMinutes(formData.checkIn) > timeToMinutes(startTime);
-      
+
       // Determine if check-out is early (only applicable for present status)
-      const isEarly = formData.status === 'present' && teacherData?.workingHours?.endTime && 
+      const isEarly = formData.status === 'present' && teacherData?.workingHours?.endTime &&
         timeToMinutes(formData.checkOut) < timeToMinutes(teacherData.workingHours.endTime);
-      
+
       // Generate note for leave
-      const leaveNote = formData.status === 'leave' 
-        ? (formData.notes || 'چھٹی لی گئی') 
+      const leaveNote = formData.status === 'leave'
+        ? (formData.notes || 'چھٹی لی گئی')
         : formData.notes;
-      
+
       // Create attendance record
       const attendanceData = {
         teacherId: currentUser.id,
@@ -297,24 +297,24 @@ function TeacherDashboard() {
         notes: leaveNote,
         createdAt: new Date().toISOString()
       };
-      
+
       // Save to Firebase
       const result = await addAttendanceRecord(attendanceData);
-      
+
       if (result.success) {
         // Use the returned record from Firebase for consistency
         const savedRecord = result.record || {
           ...attendanceData,
           id: result.id
         };
-        
+
         // If this is today's record, update todayRecord state
         if (formData.date === today) {
           setTodayRecord(savedRecord);
           setHasCheckedIn(!!savedRecord.checkIn);
           setHasCheckedOut(!!savedRecord.checkOut);
         }
-        
+
         // Add to records array - ensure we're updating the state properly
         setAttendanceRecords(prevRecords => {
           const updatedRecords = [...prevRecords];
@@ -326,7 +326,7 @@ function TeacherDashboard() {
           // Add the new record at the beginning
           return [savedRecord, ...updatedRecords];
         });
-        
+
         // Close modal and reset form
         setIsAddModalOpen(false);
         setFormData({
@@ -339,8 +339,8 @@ function TeacherDashboard() {
 
         // Show success alert
         alert('حاضری کامیابی سے درج ہو گئی ہے');
-        
-        // Force a re-fetch of attendance data
+
+        // Force a re-fetch of attendance data to ensure UI is updated
         setTimeout(() => {
           setRefreshKey(oldKey => oldKey + 1);
         }, 500);
@@ -354,7 +354,46 @@ function TeacherDashboard() {
       setIsLoading(false);
     }
   };
-  
+
+  // Debug function to check attendance data
+  const handleDebugAttendance = async () => {
+    console.log("=== DEBUG ATTENDANCE DATA ===");
+    console.log("Current User:", JSON.stringify(currentUser));
+    console.log("Teacher Data:", JSON.stringify(teacherData));
+    console.log("Current attendance records:", attendanceRecords.length);
+
+    try {
+      // Get all attendance records to see what's in the database
+      const allRecords = await debugGetAllAttendance();
+      console.log("All attendance records in database:", allRecords.length);
+
+      // Re-fetch attendance data for this teacher
+      const freshRecords = await getTeacherAttendance(currentUser.id);
+      console.log("Fresh attendance records:", freshRecords.length);
+      console.log("Fresh records data:", JSON.stringify(freshRecords));
+
+      // Update state with fresh data
+      setAttendanceRecords(freshRecords);
+
+      // Show detailed alert with debug info
+      const debugMessage = `
+Debug Information:
+- Teacher ID: ${currentUser.id}
+- Teacher Name: ${currentUser.name}
+- Records Found: ${freshRecords.length}
+- Total Records in DB: ${allRecords.length}
+- Teacher Exists: ${teacherData ? 'Yes' : 'No'}
+
+Check browser console for detailed logs.
+      `;
+
+      alert(debugMessage);
+    } catch (error) {
+      console.error("Debug error:", error);
+      alert("Debug error: " + error.message);
+    }
+  };
+
   // Open add attendance modal
   const handleAddAttendance = () => {
     setFormData({
@@ -366,14 +405,14 @@ function TeacherDashboard() {
     });
     setIsAddModalOpen(true);
   };
-  
+
   // Format current time for display
   const formattedTime = currentTime.toLocaleTimeString('en-US', {
     hour: '2-digit',
     minute: '2-digit',
     hour12: true
   });
-  
+
   // Format current date for display
   const formattedDate = currentTime.toLocaleDateString('ur-PK', {
     weekday: 'long',
@@ -381,7 +420,7 @@ function TeacherDashboard() {
     month: 'long',
     day: 'numeric'
   });
-  
+
   return (
     <div className="dashboard teacher-dashboard">
       {isLoading && (
@@ -390,7 +429,7 @@ function TeacherDashboard() {
           <p>{loadingError || 'برائے مہربانی انتظار کریں...'}</p>
         </div>
       )}
-      
+
       {errorState && (
         <div className="error-container">
           <div className="error-message-box">
@@ -408,21 +447,21 @@ function TeacherDashboard() {
           </div>
         </div>
       )}
-      
+
       {/* Add Attendance Modal */}
       {isAddModalOpen && (
         <div className="modal-overlay">
           <div className="modal-content">
             <div className="modal-header">
               <h2>حاضری درج کریں</h2>
-              <button 
-                className="close-button" 
+              <button
+                className="close-button"
                 onClick={() => setIsAddModalOpen(false)}
               >
                 <i className="fas fa-times"></i>
               </button>
             </div>
-            
+
             <form onSubmit={handleAttendanceSubmit} className="attendance-form">
               <div className="form-group">
                 <label htmlFor="date">تاریخ:</label>
@@ -436,7 +475,7 @@ function TeacherDashboard() {
                   className="form-control"
                 />
               </div>
-              
+
               <div className="form-group">
                 <label htmlFor="status">حاضری کی حالت:</label>
                 <select
@@ -452,7 +491,7 @@ function TeacherDashboard() {
                   <option value="absent">غیر حاضر</option>
                 </select>
               </div>
-              
+
               {formData.status === 'present' && (
                 <>
                   <div className="form-row">
@@ -468,7 +507,7 @@ function TeacherDashboard() {
                         className="form-control"
                       />
                     </div>
-                    
+
                     <div className="form-group">
                       <label htmlFor="checkOut">چیک آؤٹ:</label>
                       <input
@@ -482,7 +521,7 @@ function TeacherDashboard() {
                       />
                     </div>
                   </div>
-                  
+
                   {formData.checkIn && formData.checkOut && (
                     <div className="form-group info-box">
                       <div className="info-label">کام کے گھنٹے:</div>
@@ -493,7 +532,7 @@ function TeacherDashboard() {
                   )}
                 </>
               )}
-              
+
               {(formData.status === 'leave' || formData.status === 'absent') && (
                 <div className="form-group info-box warning">
                   <div className="info-label">تنخواہ میں کٹوتی:</div>
@@ -502,7 +541,7 @@ function TeacherDashboard() {
                   </div>
                 </div>
               )}
-              
+
               <div className="form-group">
                 <label htmlFor="notes">نوٹ:</label>
                 <textarea
@@ -515,7 +554,7 @@ function TeacherDashboard() {
                   rows={3}
                 />
               </div>
-              
+
               <div className="form-actions">
                 <button type="button" className="cancel-button" onClick={() => setIsAddModalOpen(false)}>
                   منسوخ کریں
@@ -528,7 +567,7 @@ function TeacherDashboard() {
           </div>
         </div>
       )}
-      
+
       {/* Navigation */}
       <nav className="admin-nav teacher-nav">
         <div className="admin-nav-brand">
@@ -553,7 +592,7 @@ function TeacherDashboard() {
           </button>
         </div>
       </nav>
-      
+
       {/* Header */}
       <header className="dashboard-header">
         <div className="dashboard-title">
@@ -595,11 +634,16 @@ function TeacherDashboard() {
       <div className="recent-records">
         <div className="header-with-button">
           <h3>حاضری ریکارڈ</h3>
-          <button onClick={handleAddAttendance} className="add-button">
-            <i className="fas fa-plus"></i> نئی حاضری درج کریں
-          </button>
+          <div className="button-group">
+            <button onClick={handleDebugAttendance} className="debug-button" style={{marginRight: '10px', backgroundColor: '#ff6b6b'}}>
+              <i className="fas fa-bug"></i> ڈیبگ
+            </button>
+            <button onClick={handleAddAttendance} className="add-button">
+              <i className="fas fa-plus"></i> نئی حاضری درج کریں
+            </button>
+          </div>
         </div>
-        
+
         <div className="table-container">
           <table className="data-table">
             <thead>
@@ -650,8 +694,8 @@ function TeacherDashboard() {
                       </div>
                     </td>
                     <td>
-                      {record.salaryDeduction > 0 
-                        ? `Rs. ${record.salaryDeduction.toFixed(2)}` 
+                      {record.salaryDeduction > 0
+                        ? `Rs. ${record.salaryDeduction.toFixed(2)}`
                         : '-'}
                     </td>
                   </tr>

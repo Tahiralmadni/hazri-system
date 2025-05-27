@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { db, getTeachers, getAllAttendance } from '../../services/firebase';
@@ -17,6 +17,71 @@ function AdminDashboard() {
   
   const { currentUser, logout } = useAuth();
   const navigate = useNavigate();
+  
+  // Load dashboard data function
+  const loadDashboardData = async () => {
+    setIsLoading(true);
+    try {
+      console.log('Loading dashboard data...');
+      
+      // Get current date in YYYY-MM-DD format
+      const today = new Date();
+      const year = today.getFullYear();
+      const month = String(today.getMonth() + 1).padStart(2, '0');
+      const day = String(today.getDate()).padStart(2, '0');
+      const todayStr = `${year}-${month}-${day}`;
+      
+      console.log('Today date for filtering:', todayStr);
+      
+      // Get all teachers
+      const teachers = await getTeachers();
+      console.log('Teachers loaded:', teachers.length);
+      
+      // Get all attendance records
+      const attendanceRecords = await getAllAttendance();
+      console.log('All attendance records loaded:', attendanceRecords.length);
+      console.log('First few attendance dates:', attendanceRecords.slice(0, 5).map(r => r.date));
+      
+      // Filter today's attendance records
+      const todayRecords = attendanceRecords.filter(record => {
+        console.log(`Comparing record date ${record.date} with today ${todayStr}`);
+        return record.date === todayStr;
+      });
+      
+      console.log('Today attendance records:', todayRecords.length);
+      
+      // Count statuses
+      const presentToday = todayRecords.filter(record => record.status === 'present').length;
+      const absentToday = todayRecords.filter(record => record.status === 'absent').length;
+      const onLeave = todayRecords.filter(record => record.status === 'leave').length;
+      
+      // Update stats
+      setStats({
+        totalTeachers: teachers.length,
+        presentToday,
+        absentToday,
+        onLeave,
+        totalAttendance: attendanceRecords.length
+      });
+      
+      console.log('Dashboard data loaded successfully:', {
+        totalTeachers: teachers.length,
+        presentToday,
+        absentToday,
+        onLeave
+      });
+    } catch (error) {
+      console.error('Error loading dashboard data:', error);
+      // Keep stats at default values
+    } finally {
+      setIsLoading(false);
+    }
+  };
+  
+  // Load data on component mount
+  useEffect(() => {
+    loadDashboardData();
+  }, []);
   
   // Handle logout
   const handleLogout = async () => {
@@ -129,14 +194,14 @@ function AdminDashboard() {
           <i className="fas fa-tachometer-alt dashboard-icon"></i>
           <h1>ایڈمن ڈیش بورڈ</h1>
         </div>
+        <div className="dashboard-actions">
+          <button onClick={loadDashboardData} className="action-button" disabled={isLoading}>
+            <i className={`fas fa-sync ${isLoading ? 'fa-spin' : ''}`}></i> ڈیٹا ریفریش کریں
+          </button>
+        </div>
       </header>
 
-      {/* Special Admin Actions */}
-      <div className="action-buttons">
-        <button onClick={initializeCollections} className="action-button">
-          <i className="fas fa-database"></i> فائربیس کلیکشنز بنائیں
-        </button>
-      </div>
+    
       
           {/* Summary Cards */}
           <div className="summary-cards">
@@ -179,4 +244,4 @@ function AdminDashboard() {
   );
 }
 
-export default AdminDashboard; 
+export default AdminDashboard;
