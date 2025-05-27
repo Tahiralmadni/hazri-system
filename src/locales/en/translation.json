@@ -1,0 +1,251 @@
+{
+  "app": {
+    "title": "Hazri System",
+    "subtitle": "Attendance and Salary Management System"
+  },
+  "months": {
+    "january": "January",
+    "february": "February", 
+    "march": "March",
+    "april": "April",
+    "may": "May",
+    "june": "June",
+    "july": "July",
+    "august": "August",
+    "september": "September",
+    "october": "October",
+    "november": "November",
+    "december": "December"
+  },
+  "pages": {
+    "login": {
+      "title": "Login - Hazri System",
+      "heading": "Login",
+      "username": "Username",
+      "password": "Password",
+      "btn_login": "Login",
+      "remember": "Remember me",
+      "adminSetup": "Admin Setup"
+    },
+    "adminSetup": {
+      "title": "Admin Setup - Hazri System",
+      "heading": "Create Admin Account",
+      "subtitle": "Set up your admin account for Hazri System",
+      "name": "Name",
+      "username": "Username",
+      "password": "Password",
+      "confirm": "Confirm Password",
+      "btn_create": "Create Account",
+      "success": "Admin account created successfully.",
+      "loginNow": "You can now",
+      "login": "log in",
+      "withCredentials": "with these credentials",
+      "email": "Email",
+      "password": "Password",
+      "backToLogin": "Back to Login",
+      "beforeProceeding": "Before proceeding",
+      "setupInProgress": "Setting up admin account...",
+      "steps": {
+        "step1": "Go to the Firebase Console (https://console.firebase.google.com/)",
+        "step2": "Select your project: \"expense-tracker-fd9cc\"",
+        "step3": "Navigate to \"Authentication\" → \"Sign-in method\"",
+        "step4": "Enable \"Email/Password\" provider",
+        "step5": "Save the changes",
+        "step6": "Return here and click the button below"
+      },
+      "errors": {
+        "alreadyExists": "Admin account already exists! You can log in using the credentials.",
+        "notEnabled": "Email/Password authentication is not enabled in Firebase Console. Please enable it first."
+      }
+    },
+    "adminDashboard": {
+      "title": "Admin Dashboard - Hazri System",
+      "heading": "Admin Dashboard",
+      "totalTeachers": "Total Teachers",
+      "presentToday": "Present Today",
+      "absentToday": "Absent Today",
+      "onLeave": "On Leave Today",
+      "refreshData": "Refresh Data",
+      "addTeacher": "Add New Teacher",
+      "viewAttendance": "View Attendance Records"
+    },
+    "teacherManagement": {
+      "title": "Teacher Management - Hazri System",
+      "heading": "Teacher Management",
+      "addTeacher": "Add New Teacher",
+      "editTeacher": "Edit Teacher",
+      "searchTeacher": "Search Teacher",
+      "searchPlaceholder": "Search by name, designation or username...",
+      "defaultDesignation": "Junior Teacher",
+      "confirmDelete": "Are you sure you want to delete this teacher?",
+      "noTeachersFound": "No teachers found. Click 'Add New Teacher' to add a teacher.",
+      "errors": {
+        "noId": "Teacher ID is missing"
+      },
+      "form": {
+        "name": "Full Name",
+        "namePlaceholder": "Enter teacher's full name",
+        "designation": "Designation",
+        "salary": "Monthly Salary",
+        "startTime": "Start Time",
+        "endTime": "End Time",
+        "contact": "Contact Number",
+        "email": "Email"
+      },
+      "table": {
+        "name": "Name",
+        "username": "Username",
+        "designation": "Designation",
+        "salary": "Salary",
+        "workingHours": "Working Hours",
+        "joinDate": "Join Date",
+        "contact": "Contact",
+        "email": "Email",
+        "actions": "Actions"
+      }
+    },
+    "teacherProfile": {
+      "title": "Teacher Profile: {{name}} - Hazri System",
+      "notFound": "Teacher Not Found - Hazri System",
+      "teacherNotFound": "Teacher information not found",
+      "returnToList": "Return to teachers list",
+      "backToTeachers": "Back to teachers",
+      "loginInfo": "Login Information",
+      "email": "Email",
+      "username": "Username",
+      "password": "Password",
+      "notAvailable": "Not available",
+      "salary": "Salary",
+      "workingHours": "Working Hours",
+      "contactNumber": "Contact Number",
+      "joiningDate": "Joining Date",
+      "generalSubjects": "General Subjects"
+    },
+    "teacherAttendance": {
+      "title": "My Attendance Records - Hazri System",
+      "heading": "My Attendance Records",
+      "month": "Month",
+      "year": "Year",
+      "status": "Status",
+      "totalDays": "Total Days",
+      "deduction": "Deduction",
+      "allMonths": "All Months",
+      "allStatus": "All Statuses",
+      "allAttendanceRecords": "All Attendance Records",
+      "monthlyRecordDetail": "{{month}} {{year}} Detailed Attendance Record",
+      "noRecordsFound": "No attendance records found for the selected month",
+      "noLeaveReason": "No leave reason provided"
+    },
+    "attendanceRecords": {
+      "title": "Attendance Records - Hazri System",
+      "heading": "Attendance Records",
+      "searchDate": "Search by Date",
+      "searchTeacher": "Search by Teacher",
+      "search": "Search",
+      "searchTeacherName": "Search teacher name...",
+      "allDates": "All Dates",
+      "allTeachers": "All Teachers",
+      "allStatus": "All Statuses",
+      "status": "Status",
+      "export": "Export",
+      "showAllDates": "Show all dates",
+      "totalRecords": "Total Records",
+      "totalDeduction": "Total Deduction",
+      "noRecordsFound": "No records found for the selected criteria",
+      "activeFilters": "Active Filters",
+      "clearAllFilters": "Clear All Filters",
+      "table": {
+        "date": "Date",
+        "teacher": "Teacher",
+        "status": "Status",
+        "checkIn": "Check In",
+        "checkOut": "Check Out",
+        "workingHours": "Working Hours",
+        "details": "Details",
+        "deduction": "Deduction"
+      }
+    },
+    "teacherDashboard": {
+      "title": "Teacher Dashboard - Hazri System",
+      "heading": "Teacher Dashboard",
+      "workingHours": "Your Working Hours",
+      "startTime": "Start Time",
+      "endTime": "End Time",
+      "salary": "Monthly Salary",
+      "markAttendance": "Mark Attendance",
+      "attendanceRecords": "Attendance Records",
+      "day": "Day",
+      "hours": "hours",
+      "notes": "Notes",
+      "notesPlaceholder": "Additional information...",
+      "noAttendanceRecords": "No attendance records found",
+      "attendanceSuccess": "Attendance recorded successfully",
+      "attendanceError": "Error submitting attendance. Please try again.",
+      "debugInfo": "Debug Information",
+      "teacherId": "Teacher ID",
+      "teacherName": "Teacher Name",
+      "recordsFound": "Records Found",
+      "totalRecords": "Total Records in DB",
+      "teacherExists": "Teacher Exists",
+      "checkConsole": "Check browser console for detailed logs",
+      "debugError": "Debug error:"
+    }
+  },
+  "components": {
+    "nav": {
+      "dashboard": "Dashboard",
+      "teachers": "Teacher Management",
+      "attendance": "Attendance Records",
+      "debug": "Data Debug",
+      "welcome": "Welcome",
+      "logout": "Logout",
+      "teacher": "Teacher"
+    },
+    "themeToggle": {
+      "light": "Light",
+      "dark": "Dark"
+    },
+    "attendanceStatus": {
+      "present": "Present",
+      "absent": "Absent",
+      "leave": "Leave",
+      "leaveDefaultNote": "Leave taken"
+    },
+    "attendanceFlags": {
+      "late": "Late Arrival",
+      "shortDay": "Early Departure"
+    },
+    "buttons": {
+      "save": "Save",
+      "cancel": "Cancel",
+      "delete": "Delete",
+      "edit": "Edit",
+      "view": "View",
+      "add": "Add",
+      "refresh": "Refresh",
+      "export": "Export",
+      "search": "Search",
+      "clear": "Clear"
+    },
+    "form": {
+      "required": "This field is required",
+      "invalidEmail": "Please enter a valid email",
+      "passwordMismatch": "Passwords do not match",
+      "invalidSalary": "Please enter a valid salary",
+      "submit": "Save",
+      "cancel": "Cancel"
+    },
+    "loading": "Please wait...",
+    "error": {
+      "title": "An error occurred",
+      "generic": "There was a problem loading the data.",
+      "retry": "Refresh Page",
+      "relogin": "Login Again",
+      "noUserData": "User information not available.",
+      "teacherNotFound": "Teacher information not found.",
+      "unknownError": "Unknown error occurred"
+    },
+    "yes": "Yes",
+    "no": "No"
+  }
+} 

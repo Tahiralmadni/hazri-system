@@ -15,6 +15,101 @@
   --info-color: #3498db;
 }
 
+/* Dark mode styles */
+.dark {
+  --primary-color: #2ecc71; /* Keep primary color the same */
+  --primary-light: #1e6f43;
+  --primary-dark: #3ee888;
+  --text-color: #e4e6e8;
+  --bg-color: #121212;
+  --card-bg: #1e1e1e;
+  --shadow-light: rgba(0, 0, 0, 0.8);
+  --shadow-dark: rgba(0, 0, 0, 0.3);
+  --border-radius: 12px;
+  --danger-color: #e74c3c;
+  --warning-color: #f39c12;
+  --success-color: #2ecc71;
+  --info-color: #3498db;
+}
+
+/* Language Switcher Style */
+.language-switcher {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background-color: var(--info-color);
+  border: none;
+  color: white;
+  padding: 8px 12px;
+  border-radius: 30px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  margin-right: 10px;
+}
+
+[dir="ltr"] .language-switcher {
+  margin-right: 0;
+  margin-left: 10px;
+}
+
+.language-switcher i {
+  font-size: 16px;
+}
+
+.language-switcher:hover {
+  background-color: var(--primary-light);
+  color: var(--primary-dark);
+}
+
+.dark .language-switcher {
+  background-color: var(--info-color);
+  color: white;
+}
+
+.dark .language-switcher:hover {
+  background-color: var(--primary-light);
+  color: var(--text-color);
+}
+
+/* Theme Toggle Button Style */
+.theme-toggle-button {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background-color: var(--card-bg);
+  border: 1px solid var(--primary-light);
+  color: var(--primary-color);
+  padding: 8px 12px;
+  border-radius: 30px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  margin-right: 10px;
+}
+
+[dir="ltr"] .theme-toggle-button {
+  margin-right: 0;
+  margin-left: 10px;
+}
+
+.theme-toggle-button i {
+  font-size: 16px;
+}
+
+.theme-toggle-button:hover {
+  background-color: var(--primary-light);
+  color: var(--primary-dark);
+}
+
+.dark .theme-toggle-button {
+  background-color: var(--card-bg);
+  border-color: var(--primary-light);
+}
+
+.dark .theme-toggle-button:hover {
+  background-color: var(--primary-light);
+  color: var(--bg-color);
+}
+
 * {
   margin: 0;
   padding: 0;
@@ -26,7 +121,6 @@ body {
   background-color: var(--bg-color);
   color: var(--text-color);
   line-height: 1.6;
-  direction: rtl;
 }
 
 .dashboard {
@@ -131,6 +225,10 @@ body {
   align-items: center;
   justify-content: center;
   z-index: 1001;
+}
+
+.dark .loading-overlay {
+  background-color: rgba(0, 0, 0, 0.7);
 }
 
 .loading-spinner {

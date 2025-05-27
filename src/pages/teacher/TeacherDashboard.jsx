@@ -1,7 +1,7 @@
-import { useState, useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
-import { addAttendanceRecord, getTeacher, getTeacherAttendance, getTeacherAttendanceSimple, getTeachers } from '../../services/firebase';
+import { addAttendanceRecord, getTeacher, getTeacherAttendance } from '../../services/firebase';
 import '../../App.css';
 import { ThemeToggle } from '../../components/ui/ThemeToggle';
 import { LanguageSwitcher } from '../../components/ui/LanguageSwitcher';
@@ -110,7 +110,6 @@ function TeacherDashboard() {
   // Load teacher data and attendance records
   useEffect(() => {
     const loadTeacherData = async () => {
-      console.log("Starting to load teacher data...");
       setIsLoading(true);
       setLoadingError(null);
 
@@ -118,76 +117,30 @@ function TeacherDashboard() {
       const loadingTimeout = setTimeout(() => {
         setIsLoading(false);
         setLoadingError(t('components.error.generic'));
-        console.error('Loading timeout reached - forcing loading state to complete');
         // Force redirect to login on timeout
         logout().then(() => navigate('/login'));
       }, 30000); // 30 seconds timeout
 
       try {
         if (!currentUser || !currentUser.id) {
-          console.error('No valid current user available:', currentUser);
           setErrorState(true);
           throw new Error(t('components.error.noUserData', 'User information not available.'));
-        }
-
-        // Debug current user info
-        console.log("Current user data:", JSON.stringify(currentUser));
-        console.log("Fetching teacher data with ID:", currentUser.id);
-
-        try {
-          // Force login refresh
-          const storedUser = JSON.parse(localStorage.getItem('currentUser'));
-          if (storedUser) {
-            console.log("Stored user from localStorage:", JSON.stringify(storedUser));
-          }
-        } catch (e) {
-          console.error("Error reading localStorage:", e);
-        }
-
-        // Try to list all teachers first
-        try {
-          const allTeachers = await getTeachers();
-          console.log("Found teachers in database:",
-            allTeachers.map(t => ({ id: t.id, name: t.name, username: t.username })));
-
-          // Check if current teacher's ID exists in the list
-          const teacherExists = allTeachers.some(t => t.id === currentUser.id);
-          console.log(`Current teacher ID ${currentUser.id} exists in teachers list: ${teacherExists}`);
-
-          // Try to find teacher by username if ID doesn't match
-          if (!teacherExists) {
-            const matchByUsername = allTeachers.find(t => t.username === currentUser.username);
-            if (matchByUsername) {
-              console.log("Found teacher by username instead of ID:", matchByUsername.id);
-              // Update localStorage with correct ID
-              const updatedUser = {...currentUser, id: matchByUsername.id};
-              localStorage.setItem('currentUser', JSON.stringify(updatedUser));
-              window.location.reload(); // Force reload to use new ID
-              return;
-            }
-          }
-        } catch (listError) {
-          console.error("Error listing teachers:", listError);
         }
 
         // Load teacher data
         const teacher = await getTeacher(currentUser.id);
 
         if (!teacher) {
-          console.error('Teacher data not found for ID:', currentUser.id);
           setErrorState(true);
           throw new Error(t('components.error.teacherNotFound', 'Teacher information not found.'));
         }
 
-        console.log("Teacher data loaded successfully:", teacher);
         setTeacherData(teacher);
 
-        // Load attendance records with reliable method
-        console.log("Fetching attendance records for teacher ID:", currentUser.id);
+        // Load attendance records
         const records = await getTeacherAttendance(currentUser.id);
 
         if (Array.isArray(records)) {
-          console.log(`Successfully loaded ${records.length} attendance records`);
           // Sort records by date (newest first)
           const sortedRecords = [...records].sort((a, b) => {
             return new Date(b.date) - new Date(a.date);
@@ -202,7 +155,6 @@ function TeacherDashboard() {
             setHasCheckedOut(!!todayRec.checkOut);
           }
         } else {
-          console.error('Received invalid attendance records:', records);
           setAttendanceRecords([]);
         }
       } catch (error) {
@@ -688,4 +640,4 @@ function TeacherDashboard() {
   );
 }
 
-export default TeacherDashboard;
+export default TeacherDashboard; 

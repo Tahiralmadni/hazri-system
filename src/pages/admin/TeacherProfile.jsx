@@ -4,6 +4,10 @@ import { useAuth } from '../../contexts/AuthContext';
 import { db, getTeacher } from '../../services/firebase';
 import { doc, getDoc } from 'firebase/firestore';
 import '../../App.css';
+import { ThemeToggle } from '../../components/ui/ThemeToggle';
+import { LanguageSwitcher } from '../../components/ui/LanguageSwitcher';
+import { useTranslation } from 'react-i18next';
+import { Helmet } from 'react-helmet-async';
 
 // Function to format time in 12-hour format (AM/PM)
 const formatTime = (timeString) => {
@@ -16,6 +20,7 @@ const formatTime = (timeString) => {
 };
 
 function TeacherProfile() {
+  const { t } = useTranslation();
   const { id: encodedId } = useParams();
   const id = decodeURIComponent(encodedId || '');
   
@@ -65,7 +70,7 @@ function TeacherProfile() {
             id: docSnap.id,
             ...docSnap.data(),
             // Default data for fields that might not exist in Firestore
-            subjects: docSnap.data().subjects || ['عام مضامین'],
+            subjects: docSnap.data().subjects || [t('pages.teacherProfile.generalSubjects', 'General Subjects')],
             workingHours: docSnap.data().workingHours || { startTime: '08:00', endTime: '16:00' },
             monthlySalary: docSnap.data().monthlySalary || 0,
             attendanceSummary: docSnap.data().attendanceSummary || {
@@ -89,86 +94,87 @@ function TeacherProfile() {
               }
             },
             recentAttendance: docSnap.data().recentAttendance || [],
-            recentSalary: docSnap.data().recentSalary || [
-              {
-                month: new Date().toLocaleDateString('ur-PK', { month: 'long', year: 'numeric' }),
-                baseSalary: docSnap.data().monthlySalary || 0,
-                deductions: 0,
-                bonus: 0,
-                netSalary: docSnap.data().monthlySalary || 0,
-                status: 'pending'
-              }
-            ]
           };
           
-          console.log("Teacher data:", teacherData);
-        setTeacher(teacherData);
-          setNotFound(false);
-      } else {
-          console.log("Teacher not found");
+          console.log("Teacher data loaded:", teacherData);
+          setTeacher(teacherData);
+          setIsLoading(false);
+        } else {
+          console.error("Teacher document not found");
           setNotFound(true);
+          setIsLoading(false);
         }
       } catch (error) {
-        console.error("Error fetching teacher:", error);
+        console.error("Error fetching teacher data:", error);
         setNotFound(true);
-      } finally {
         setIsLoading(false);
       }
     };
     
     fetchTeacherData();
-  }, [id]);
+  }, [id, t]);
 
   // Handle tab change
   const handleTabChange = (tab) => {
     setActiveTab(tab);
   };
 
+  // Loading state
   if (isLoading) {
     return (
-      <div className="loading-overlay">
-        <div className="loading-spinner"></div>
-        <p>برائے مہربانی انتظار کریں...</p>
+      <div className="dashboard">
+        <div className="loading-overlay">
+          <div className="loading-spinner"></div>
+          <p>{t('components.loading')}</p>
+        </div>
       </div>
     );
   }
-  
+
+  // Not found state
   if (notFound) {
     return (
       <div className="dashboard">
+        <Helmet>
+          <title>{t('pages.teacherProfile.notFound')}</title>
+          <meta name="description" content={t('app.subtitle')} />
+        </Helmet>
         <nav className="admin-nav">
           <div className="admin-nav-brand">
             <i className="fas fa-user-clock"></i>
-            <span>حاضری اور تنخواہ نظام</span>
+            <span>{t('app.title')}</span>
           </div>
           <div className="admin-nav-menu">
             <Link to="/admin" className="admin-nav-link">
-              <i className="fas fa-tachometer-alt"></i> ڈیش بورڈ
+              <i className="fas fa-tachometer-alt"></i> {t('components.nav.dashboard')}
             </Link>
             <Link to="/admin/teachers" className="admin-nav-link active">
-              <i className="fas fa-chalkboard-teacher"></i> اساتذہ
+              <i className="fas fa-chalkboard-teacher"></i> {t('components.nav.teachers')}
             </Link>
             <Link to="/admin/attendance" className="admin-nav-link">
-              <i className="fas fa-clipboard-list"></i> حاضری
+              <i className="fas fa-clipboard-list"></i> {t('components.nav.attendance')}
             </Link>
           </div>
           <div className="admin-nav-user">
+            <LanguageSwitcher />
+            <ThemeToggle />
+            <span>{t('components.nav.welcome')}, {currentUser?.name}</span>
             <button onClick={handleLogout} className="logout-button">
-              <i className="fas fa-sign-out-alt"></i> لاگ آؤٹ
+              <i className="fas fa-sign-out-alt"></i> {t('components.nav.logout')}
             </button>
           </div>
         </nav>
         
         <div className="container">
           <button className="back-btn" onClick={() => navigate('/admin/teachers')}>
-            <i className="fas fa-arrow-right"></i> واپس جائیں
+            <i className="fas fa-arrow-right"></i> {t('pages.teacherProfile.backToTeachers')}
           </button>
           
           <div className="not-found-box">
             <i className="fas fa-user-slash not-found-icon"></i>
-            <h2>استاد کی معلومات نہیں ملی</h2>
+            <h2>{t('pages.teacherProfile.teacherNotFound')}</h2>
             <button className="btn primary-btn" onClick={() => navigate('/admin/teachers')}>
-              اساتذہ کی فہرست پر واپس جائیں
+              {t('pages.teacherProfile.returnToList')}
             </button>
           </div>
         </div>
@@ -178,26 +184,34 @@ function TeacherProfile() {
 
   return (
     <div className="dashboard">
+      <Helmet>
+        <title>{t('pages.teacherProfile.title', { name: teacher.name })}</title>
+        <meta name="description" content={t('app.subtitle')} />
+      </Helmet>
+      
       {/* Simple Navigation */}
       <nav className="admin-nav">
         <div className="admin-nav-brand">
           <i className="fas fa-user-clock"></i>
-          <span>حاضری نظام</span>
+          <span>{t('app.title')}</span>
         </div>
         <div className="admin-nav-menu">
           <Link to="/admin" className="admin-nav-link">
-            <i className="fas fa-tachometer-alt"></i> ڈیش بورڈ
+            <i className="fas fa-tachometer-alt"></i> {t('components.nav.dashboard')}
           </Link>
           <Link to="/admin/teachers" className="admin-nav-link active">
-            <i className="fas fa-chalkboard-teacher"></i> اساتذہ
+            <i className="fas fa-chalkboard-teacher"></i> {t('components.nav.teachers')}
           </Link>
           <Link to="/admin/attendance" className="admin-nav-link">
-            <i className="fas fa-clipboard-list"></i> حاضری
+            <i className="fas fa-clipboard-list"></i> {t('components.nav.attendance')}
           </Link>
         </div>
         <div className="admin-nav-user">
+          <LanguageSwitcher />
+          <ThemeToggle />
+          <span>{t('components.nav.welcome')}, {currentUser?.name}</span>
           <button onClick={handleLogout} className="logout-button">
-            <i className="fas fa-sign-out-alt"></i> لاگ آؤٹ
+            <i className="fas fa-sign-out-alt"></i> {t('components.nav.logout')}
           </button>
         </div>
       </nav>
@@ -205,14 +219,14 @@ function TeacherProfile() {
       <div className="container">
         {/* Back Button */}
         <button className="back-btn" onClick={() => navigate('/admin/teachers')}>
-          <i className="fas fa-arrow-right"></i> واپس جائیں
+          <i className="fas fa-arrow-right"></i> {t('pages.teacherProfile.backToTeachers')}
         </button>
         
         {/* Simple Teacher Card */}
         <div className="teacher-profile-card">
           <div className="teacher-avatar">
-                  <i className="fas fa-user-tie"></i>
-                </div>
+            <i className="fas fa-user-tie"></i>
+          </div>
           
           <h1 className="teacher-name">{teacher.name}</h1>
           <p className="teacher-designation">{teacher.designation}</p>
@@ -220,16 +234,16 @@ function TeacherProfile() {
           {/* Credentials Box */}
           <div className="credentials-box">
             <div className="credentials-header">
-              <i className="fas fa-key"></i> لاگ ان معلومات
+              <i className="fas fa-key"></i> {t('pages.teacherProfile.loginInfo')}
             </div>
             <div className="credentials-item">
-              <strong>ای میل:</strong> {teacher.email}
+              <strong>{t('pages.teacherProfile.email')}:</strong> {teacher.email}
             </div>
             <div className="credentials-item">
-              <strong>صارف نام:</strong> {teacher.username}
+              <strong>{t('pages.teacherProfile.username')}:</strong> {teacher.username}
             </div>
             <div className="credentials-item">
-              <strong>پاس ورڈ:</strong> {teacher.password || 'دستیاب نہیں'}
+              <strong>{t('pages.teacherProfile.password')}:</strong> {teacher.password || t('pages.teacherProfile.notAvailable')}
             </div>
           </div>
 
@@ -238,58 +252,55 @@ function TeacherProfile() {
             <div className="info-box">
               <div className="info-box-icon">
                 <i className="fas fa-money-bill-wave"></i>
-                    </div>
+              </div>
               <div className="info-box-content">
-                <div className="info-box-label">تنخواہ</div>
+                <div className="info-box-label">{t('pages.teacherProfile.salary')}</div>
                 <div className="info-box-value">Rs. {teacher.monthlySalary.toLocaleString()}</div>
-                  </div>
-                </div>
+              </div>
+            </div>
 
             <div className="info-box">
               <div className="info-box-icon">
                 <i className="fas fa-clock"></i>
-                    </div>
+              </div>
               <div className="info-box-content">
-                <div className="info-box-label">کام کے اوقات</div>
+                <div className="info-box-label">{t('pages.teacherProfile.workingHours')}</div>
                 <div className="info-box-value">{teacher.workingHours.startTime} - {teacher.workingHours.endTime}</div>
-                  </div>
-                </div>
+              </div>
+            </div>
 
             <div className="info-box">
               <div className="info-box-icon">
                 <i className="fas fa-phone"></i>
               </div>
               <div className="info-box-content">
-                <div className="info-box-label">رابطہ نمبر</div>
-                <div className="info-box-value">{teacher.contactNumber || 'دستیاب نہیں'}</div>
-                  </div>
-                </div>
+                <div className="info-box-label">{t('pages.teacherProfile.contactNumber')}</div>
+                <div className="info-box-value">{teacher.contactNumber || t('pages.teacherProfile.notAvailable')}</div>
+              </div>
+            </div>
 
             <div className="info-box">
               <div className="info-box-icon">
                 <i className="fas fa-calendar"></i>
               </div>
               <div className="info-box-content">
-                <div className="info-box-label">تاریخ شمولیت</div>
+                <div className="info-box-label">{t('pages.teacherProfile.joiningDate')}</div>
                 <div className="info-box-value">{teacher.joiningDate}</div>
-                    </div>
-                  </div>
-                </div>
+              </div>
+            </div>
+          </div>
 
           {/* Action Buttons */}
           <div className="action-buttons">
-            <button className="btn primary-btn">
-              <i className="fas fa-edit"></i> ترمیم کریں
+            <button className="btn edit-btn" onClick={() => navigate('/admin/teachers', { state: { editTeacher: teacher } })}>
+              <i className="fas fa-edit"></i> {t('components.buttons.edit')}
             </button>
-            <button className="btn primary-btn">
-              <i className="fas fa-money-bill-wave"></i> تنخواہ ادا کریں
-                  </button>
-            <button className="btn secondary-btn">
-                    <i className="fas fa-print"></i> پرنٹ کریں
-                  </button>
-                </div>
-              </div>
+            <button className="btn delete-btn" onClick={() => navigate('/admin/teachers', { state: { deleteTeacher: teacher.id } })}>
+              <i className="fas fa-trash-alt"></i> {t('components.buttons.delete')}
+            </button>
           </div>
+        </div>
+      </div>
     </div>
   );
 }

@@ -6,6 +6,10 @@ import { createUserAccount } from '../../services/firebase';
 import '../../App.css';
 import { collection, doc, setDoc } from 'firebase/firestore';
 import { db } from '../../services/firebase';
+import { ThemeToggle } from '../../components/ui/ThemeToggle';
+import { LanguageSwitcher } from '../../components/ui/LanguageSwitcher';
+import { useTranslation } from 'react-i18next';
+import { Helmet } from 'react-helmet-async';
 
 // Function to generate random password
 const generatePassword = () => {
@@ -15,16 +19,18 @@ const generatePassword = () => {
     password += chars.charAt(Math.floor(Math.random() * chars.length));
   }
   return password;
+  zzzxzx6//'/;l]\;l;ll.,vg
 };
 
 function TeacherManagement() {
+  const { t } = useTranslation();
   const [teachers, setTeachers] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [formData, setFormData] = useState({
     name: '',
-    designation: 'جونیئر استاد',
+    designation: t('pages.teacherManagement.defaultDesignation', 'جونیئر استاد'),
     monthlySalary: '',
     contactNumber: '',
     email: '',
@@ -89,7 +95,7 @@ function TeacherManagement() {
     setCurrentEditId(null);
     setFormData({
       name: '',
-      designation: 'جونیئر استاد',
+      designation: t('pages.teacherManagement.defaultDesignation', 'جونیئر استاد'),
       monthlySalary: '',
       contactNumber: '',
       email: '',
@@ -118,7 +124,7 @@ function TeacherManagement() {
 
   // Handle teacher deletion
   const handleDeleteTeacher = async (id) => {
-    if (window.confirm('کیا آپ واقعی اس استاد کو حذف کرنا چاہتے ہیں؟')) {
+    if (window.confirm(t('pages.teacherManagement.confirmDelete', 'کیا آپ واقعی اس استاد کو حذف کرنا چاہتے ہیں؟'))) {
       setIsLoading(true);
       try {
         await deleteTeacher(id);
@@ -261,19 +267,51 @@ function TeacherManagement() {
 
   return (
     <div className="dashboard">
+      <Helmet>
+        <title>{t('pages.teacherManagement.title')}</title>
+        <meta name="description" content={t('app.subtitle')} />
+      </Helmet>
+      
       {isLoading && (
         <div className="loading-overlay">
           <div className="loading-spinner"></div>
-          <p>برائے مہربانی انتظار کریں...</p>
+          <p>{t('components.loading')}</p>
         </div>
       )}
+      
+      {/* Navigation */}
+      <nav className="admin-nav">
+        <div className="admin-nav-brand">
+          <i className="fas fa-user-clock"></i>
+          <span>{t('app.title')}</span>
+        </div>
+        <div className="admin-nav-menu">
+          <Link to="/admin" className="admin-nav-link">
+            <i className="fas fa-tachometer-alt"></i> {t('components.nav.dashboard')}
+          </Link>
+          <Link to="/admin/teachers" className="admin-nav-link active">
+            <i className="fas fa-chalkboard-teacher"></i> {t('components.nav.teachers')}
+          </Link>
+          <Link to="/admin/attendance" className="admin-nav-link">
+            <i className="fas fa-clipboard-list"></i> {t('components.nav.attendance')}
+          </Link>
+        </div>
+        <div className="admin-nav-user">
+          <LanguageSwitcher />
+          <ThemeToggle />
+          <span>{t('components.nav.welcome')}, {currentUser?.name}</span>
+          <button onClick={handleLogout} className="logout-button">
+            <i className="fas fa-sign-out-alt"></i> {t('components.nav.logout')}
+          </button>
+        </div>
+      </nav>
       
       {/* Modal */}
       {isModalOpen && (
         <div className="modal-overlay">
           <div className="modal-content">
             <div className="modal-header">
-              <h2>{isEditMode ? 'استاد کی معلومات میں ترمیم' : 'نیا استاد شامل کریں'}</h2>
+              <h2>{isEditMode ? t('pages.teacherManagement.editTeacher') : t('pages.teacherManagement.addTeacher')}</h2>
               <button 
                 className="close-button" 
                 onClick={() => setIsModalOpen(false)}
@@ -284,7 +322,7 @@ function TeacherManagement() {
             
             <form onSubmit={handleSubmit} className="teacher-form">
               <div className="form-group">
-                <label htmlFor="name">مکمل نام:</label>
+                <label htmlFor="name">{t('pages.teacherManagement.form.name')}:</label>
                 <input
                   type="text"
                   id="name"
@@ -293,13 +331,13 @@ function TeacherManagement() {
                   onChange={handleInputChange}
                   required
                   className="form-control"
-                  placeholder="استاد کا مکمل نام"
+                  placeholder={t('pages.teacherManagement.form.namePlaceholder')}
                 />
               </div>
               
               <div className="form-row">
                 <div className="form-group">
-                  <label htmlFor="designation">عہدہ:</label>
+                  <label htmlFor="designation">{t('pages.teacherManagement.form.designation')}:</label>
                   <select
                     id="designation"
                     name="designation"
@@ -317,7 +355,7 @@ function TeacherManagement() {
                 </div>
                 
                 <div className="form-group">
-                  <label htmlFor="monthlySalary">ماہانہ تنخواہ:</label>
+                  <label htmlFor="monthlySalary">{t('pages.teacherManagement.form.salary')}:</label>
                   <input
                     type="number"
                     id="monthlySalary"
@@ -334,7 +372,7 @@ function TeacherManagement() {
               
               <div className="form-row">
                 <div className="form-group">
-                  <label htmlFor="startTime">آغاز کار:</label>
+                  <label htmlFor="startTime">{t('pages.teacherManagement.form.startTime')}:</label>
                   <input
                     type="time"
                     id="startTime"
@@ -347,7 +385,7 @@ function TeacherManagement() {
                 </div>
                 
                 <div className="form-group">
-                  <label htmlFor="endTime">اختتام کار:</label>
+                  <label htmlFor="endTime">{t('pages.teacherManagement.form.endTime')}:</label>
                   <input
                     type="time"
                     id="endTime"
@@ -361,7 +399,7 @@ function TeacherManagement() {
               </div>
               
               <div className="form-group">
-                <label htmlFor="contactNumber">رابطہ نمبر:</label>
+                <label htmlFor="contactNumber">{t('pages.teacherManagement.form.contact')}:</label>
                 <input
                   type="text"
                   id="contactNumber"
@@ -375,7 +413,7 @@ function TeacherManagement() {
               </div>
               
               <div className="form-group">
-                <label htmlFor="email">ای میل:</label>
+                <label htmlFor="email">{t('pages.teacherManagement.form.email')}:</label>
                 <input
                   type="email"
                   id="email"
@@ -389,10 +427,10 @@ function TeacherManagement() {
               
               <div className="form-actions">
                 <button type="button" className="cancel-button" onClick={() => setIsModalOpen(false)}>
-                  منسوخ کریں
+                  {t('components.form.cancel')}
                 </button>
                 <button type="submit" className="submit-button">
-                  {isEditMode ? 'تبدیلیاں محفوظ کریں' : 'محفوظ کریں'}
+                  {t('components.form.submit')}
                 </button>
               </div>
             </form>
@@ -400,51 +438,26 @@ function TeacherManagement() {
         </div>
       )}
       
-      {/* Navigation */}
-      <nav className="admin-nav">
-        <div className="admin-nav-brand">
-          <i className="fas fa-user-clock"></i>
-          <span>حاضری اور تنخواہ نظام</span>
-        </div>
-        <div className="admin-nav-menu">
-          <Link to="/admin" className="admin-nav-link">
-            <i className="fas fa-tachometer-alt"></i> ڈیش بورڈ
-          </Link>
-          <Link to="/admin/teachers" className="admin-nav-link active">
-            <i className="fas fa-chalkboard-teacher"></i> اساتذہ کا انتظام
-          </Link>
-          <Link to="/admin/attendance" className="admin-nav-link">
-            <i className="fas fa-clipboard-list"></i> حاضری ریکارڈ
-          </Link>
-        </div>
-        <div className="admin-nav-user">
-          <span>خوش آمدید، {currentUser?.name}</span>
-          <button onClick={handleLogout} className="logout-button">
-            <i className="fas fa-sign-out-alt"></i> لاگ آؤٹ
-          </button>
-        </div>
-      </nav>
-      
-      {/* Header */}
+      {/* Page Header */}
       <header className="dashboard-header">
         <div className="dashboard-title">
           <i className="fas fa-chalkboard-teacher dashboard-icon"></i>
-          <h1>اساتذہ کا انتظام</h1>
+          <h1>{t('pages.teacherManagement.heading')}</h1>
         </div>
         <div className="filters">
           <div className="filter-group search-group">
-            <label htmlFor="search"><i className="fas fa-search"></i> تلاش:</label>
+            <label htmlFor="search"><i className="fas fa-search"></i> {t('pages.teacherManagement.searchTeacher')}:</label>
             <input 
               type="text" 
               id="search" 
-              placeholder="نام، عہدہ یا صارف نام سے تلاش کریں..." 
+              placeholder={t('pages.teacherManagement.searchPlaceholder')} 
               value={searchTerm} 
               onChange={(e) => setSearchTerm(e.target.value)}
               className="filter-input"
             />
           </div>
           <button className="add-teacher-button" onClick={handleAddTeacher}>
-            <i className="fas fa-user-plus"></i> نیا استاد شامل کریں
+            <i className="fas fa-user-plus"></i> {t('pages.teacherManagement.addTeacher')}
           </button>
         </div>
       </header>
@@ -454,15 +467,15 @@ function TeacherManagement() {
         <table className="data-table">
           <thead>
             <tr>
-              <th>نام</th>
-              <th>صارف نام</th>
-              <th>عہدہ</th>
-              <th>ماہانہ تنخواہ</th>
-              <th>کام کے اوقات</th>
-              <th>تاریخ شمولیت</th>
-              <th>رابطہ نمبر</th>
-              <th>ای میل</th>
-              <th>عملیات</th>
+              <th>{t('pages.teacherManagement.table.name')}</th>
+              <th>{t('pages.teacherManagement.table.username')}</th>
+              <th>{t('pages.teacherManagement.table.designation')}</th>
+              <th>{t('pages.teacherManagement.table.salary')}</th>
+              <th>{t('pages.teacherManagement.table.workingHours')}</th>
+              <th>{t('pages.teacherManagement.table.joinDate')}</th>
+              <th>{t('pages.teacherManagement.table.contact')}</th>
+              <th>{t('pages.teacherManagement.table.email')}</th>
+              <th>{t('pages.teacherManagement.table.actions')}</th>
             </tr>
           </thead>
           <tbody>
@@ -479,11 +492,10 @@ function TeacherManagement() {
                   <td>{teacher?.email || '-'}</td>
                   <td className="action-cell">
                     <Link to={`/admin/teacher/${encodeURIComponent(teacher?.id || '')}`} className="table-action view" onClick={(e) => {
-                      // Add debug info
                       console.log("Navigating to teacher profile with ID:", teacher?.id);
                       if (!teacher?.id) {
                         e.preventDefault();
-                        alert("استاد کی شناخت (ID) موجود نہیں ہے");
+                        alert(t('pages.teacherManagement.errors.noId'));
                       }
                     }}>
                       <i className="fas fa-eye"></i>
@@ -500,7 +512,7 @@ function TeacherManagement() {
             ) : (
               <tr>
                 <td colSpan="9" className="empty-message">
-                  <i className="fas fa-user-slash"></i> کوئی استاد موجود نہیں۔ نیا استاد شامل کرنے کے لیے "نیا استاد شامل کریں" بٹن پر کلک کریں
+                  <i className="fas fa-user-slash"></i> {t('pages.teacherManagement.noTeachersFound')}
                 </td>
               </tr>
             )}
@@ -509,7 +521,7 @@ function TeacherManagement() {
       </div>
 
       <footer className="dashboard-footer">
-        <p>© {new Date().getFullYear()} - حاضری نظام - دارالافتا</p>
+        <p>© {new Date().getFullYear()} - {t('app.title')}</p>
       </footer>
     </div>
   );

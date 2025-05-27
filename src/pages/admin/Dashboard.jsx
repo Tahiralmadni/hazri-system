@@ -4,8 +4,13 @@ import { useAuth } from '../../contexts/AuthContext';
 import { db, getTeachers, getAllAttendance } from '../../services/firebase';
 import { collection, doc, setDoc, getDocs } from 'firebase/firestore';
 import '../../App.css';
+import { ThemeToggle } from '../../components/ui/ThemeToggle';
+import { LanguageSwitcher } from '../../components/ui/LanguageSwitcher';
+import { useTranslation } from 'react-i18next';
+import { Helmet } from 'react-helmet-async';
 
 function AdminDashboard() {
+  const { t } = useTranslation();
   const [isLoading, setIsLoading] = useState(false);
   const [stats, setStats] = useState({
     totalTeachers: 0,
@@ -156,10 +161,15 @@ function AdminDashboard() {
 
   return (
     <div className="dashboard">
+      <Helmet>
+        <title>{t('pages.adminDashboard.title')}</title>
+        <meta name="description" content={t('app.subtitle')} />
+      </Helmet>
+      
       {isLoading && (
         <div className="loading-overlay">
           <div className="loading-spinner"></div>
-          <p>برائے مہربانی انتظار کریں...</p>
+          <p>{t('components.loading')}</p>
         </div>
       )}
       
@@ -167,23 +177,25 @@ function AdminDashboard() {
       <nav className="admin-nav">
         <div className="admin-nav-brand">
           <i className="fas fa-user-clock"></i>
-          <span>حاضری اور تنخواہ نظام</span>
+          <span>{t('app.subtitle')}</span>
         </div>
         <div className="admin-nav-menu">
           <Link to="/admin" className="admin-nav-link active">
-            <i className="fas fa-tachometer-alt"></i> ڈیش بورڈ
+            <i className="fas fa-tachometer-alt"></i> {t('components.nav.dashboard')}
           </Link>
           <Link to="/admin/teachers" className="admin-nav-link">
-            <i className="fas fa-chalkboard-teacher"></i> اساتذہ کا انتظام
+            <i className="fas fa-chalkboard-teacher"></i> {t('components.nav.teachers')}
           </Link>
           <Link to="/admin/attendance" className="admin-nav-link">
-            <i className="fas fa-clipboard-list"></i> حاضری ریکارڈ
+            <i className="fas fa-clipboard-list"></i> {t('components.nav.attendance')}
           </Link>
         </div>
         <div className="admin-nav-user">
-          <span>خوش آمدید، {currentUser?.name}</span>
+          <LanguageSwitcher />
+          <ThemeToggle />
+          <span>{t('components.nav.welcome')}, {currentUser?.name}</span>
           <button onClick={handleLogout} className="logout-button">
-            <i className="fas fa-sign-out-alt"></i> لاگ آؤٹ
+            <i className="fas fa-sign-out-alt"></i> {t('components.nav.logout')}
           </button>
         </div>
       </nav>
@@ -192,11 +204,11 @@ function AdminDashboard() {
       <header className="dashboard-header">
         <div className="dashboard-title">
           <i className="fas fa-tachometer-alt dashboard-icon"></i>
-          <h1>ایڈمن ڈیش بورڈ</h1>
+          <h1>{t('pages.adminDashboard.heading')}</h1>
         </div>
         <div className="dashboard-actions">
           <button onClick={loadDashboardData} className="action-button" disabled={isLoading}>
-            <i className={`fas fa-sync ${isLoading ? 'fa-spin' : ''}`}></i> ڈیٹا ریفریش کریں
+            <i className={`fas fa-sync ${isLoading ? 'fa-spin' : ''}`}></i> {t('pages.adminDashboard.refreshData')}
           </button>
         </div>
       </header>
@@ -207,38 +219,38 @@ function AdminDashboard() {
           <div className="summary-cards">
             <div className="summary-card">
               <i className="fas fa-chalkboard-teacher summary-icon"></i>
-              <h3>کل اساتذہ</h3>
-          <p>{stats.totalTeachers}</p>
+              <h3>{t('pages.adminDashboard.totalTeachers')}</h3>
+              <p>{stats.totalTeachers}</p>
             </div>
             <div className="summary-card">
               <i className="fas fa-user-check summary-icon"></i>
-              <h3>آج حاضر</h3>
-          <p>{stats.presentToday}</p>
+              <h3>{t('pages.adminDashboard.presentToday')}</h3>
+              <p>{stats.presentToday}</p>
             </div>
             <div className="summary-card">
-          <i className="fas fa-user-times summary-icon"></i>
-          <h3>آج غیر حاضر</h3>
-          <p>{stats.absentToday}</p>
+              <i className="fas fa-user-times summary-icon"></i>
+              <h3>{t('pages.adminDashboard.absentToday')}</h3>
+              <p>{stats.absentToday}</p>
             </div>
             <div className="summary-card">
-          <i className="fas fa-user-minus summary-icon"></i>
-          <h3>آج چھٹی پر</h3>
-          <p>{stats.onLeave}</p>
+              <i className="fas fa-user-minus summary-icon"></i>
+              <h3>{t('pages.adminDashboard.onLeave')}</h3>
+              <p>{stats.onLeave}</p>
             </div>
           </div>
 
       {/* Action Buttons */}
-            <div className="action-buttons">
-              <Link to="/admin/teachers" className="action-button">
-          <i className="fas fa-user-plus"></i> نیا استاد شامل کریں
-              </Link>
-              <Link to="/admin/attendance" className="action-button">
-          <i className="fas fa-clipboard-list"></i> حاضری کا ریکارڈ دیکھیں
-              </Link>
-          </div>
+      <div className="action-buttons">
+        <Link to="/admin/teachers" className="action-button">
+          <i className="fas fa-user-plus"></i> {t('pages.adminDashboard.addTeacher')}
+        </Link>
+        <Link to="/admin/attendance" className="action-button">
+          <i className="fas fa-clipboard-list"></i> {t('pages.adminDashboard.viewAttendance')}
+        </Link>
+      </div>
 
       <footer className="dashboard-footer">
-        <p>© {new Date().getFullYear()} - حاضری نظام - دارالافتا</p>
+        <p>© {new Date().getFullYear()} - {t('app.title')}</p>
       </footer>
     </div>
   );

@@ -2,8 +2,13 @@ import { useState } from 'react';
 import { createUserAccount } from '../services/firebase';
 import { Link } from 'react-router-dom';
 import '../App.css';
+import { ThemeToggle } from '../components/ui/ThemeToggle';
+import { LanguageSwitcher } from '../components/ui/LanguageSwitcher';
+import { useTranslation } from 'react-i18next';
+import { Helmet } from 'react-helmet-async';
 
 function AdminSetup() {
+  const { t } = useTranslation();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState(false);
@@ -19,9 +24,9 @@ function AdminSetup() {
     } catch (error) {
       console.error('Error creating admin account:', error);
       if (error.code === 'auth/email-already-in-use') {
-        setError('Admin account already exists! You can log in using the credentials.');
+        setError(t('pages.adminSetup.errors.alreadyExists', 'Admin account already exists! You can log in using the credentials.'));
       } else if (error.code === 'auth/operation-not-allowed') {
-        setError('Email/Password authentication is not enabled in Firebase Console. Please enable it first.');
+        setError(t('pages.adminSetup.errors.notEnabled', 'Email/Password authentication is not enabled in Firebase Console. Please enable it first.'));
       } else {
         setError(error.message);
       }
@@ -32,11 +37,20 @@ function AdminSetup() {
 
   return (
     <div className="login-container">
+      <Helmet>
+        <title>{t('pages.adminSetup.title')}</title>
+        <meta name="description" content={t('app.subtitle')} />
+      </Helmet>
+      
       <div className="login-card">
         <div className="login-header">
+          <div className="language-nav" style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '20px' }}>
+            <LanguageSwitcher />
+            <ThemeToggle />
+          </div>
           <i className="fas fa-user-shield login-icon"></i>
-          <h1>Admin Account Setup</h1>
-          <p>Set up your admin account for Hazri System</p>
+          <h1>{t('pages.adminSetup.heading')}</h1>
+          <p>{t('pages.adminSetup.subtitle', 'Set up your admin account for Hazri System')}</p>
         </div>
         
         {error && (
@@ -47,22 +61,22 @@ function AdminSetup() {
         
         {success && (
           <div className="success-message">
-            <i className="fas fa-check-circle"></i> Admin account created successfully!
-            <p>You can now <Link to="/login">log in</Link> with these credentials:</p>
-            <p><strong>Email:</strong> tahiralmadni@gmail.com</p>
-            <p><strong>Password:</strong> admin123</p>
+            <i className="fas fa-check-circle"></i> {t('pages.adminSetup.success')}
+            <p>{t('pages.adminSetup.loginNow')} <Link to="/login">{t('pages.adminSetup.login')}</Link> {t('pages.adminSetup.withCredentials')}:</p>
+            <p><strong>{t('pages.adminSetup.email')}:</strong> tahiralmadni@gmail.com</p>
+            <p><strong>{t('pages.adminSetup.password')}:</strong> admin123</p>
           </div>
         )}
         
         <div className="setup-instructions">
-          <h3>Before proceeding:</h3>
+          <h3>{t('pages.adminSetup.beforeProceeding')}:</h3>
           <ol>
-            <li>Go to the Firebase Console (https://console.firebase.google.com/)</li>
-            <li>Select your project: "expense-tracker-fd9cc"</li>
-            <li>Navigate to "Authentication" → "Sign-in method"</li>
-            <li>Enable "Email/Password" provider</li>
-            <li>Save the changes</li>
-            <li>Return here and click the button below</li>
+            <li>{t('pages.adminSetup.steps.step1')}</li>
+            <li>{t('pages.adminSetup.steps.step2')}</li>
+            <li>{t('pages.adminSetup.steps.step3')}</li>
+            <li>{t('pages.adminSetup.steps.step4')}</li>
+            <li>{t('pages.adminSetup.steps.step5')}</li>
+            <li>{t('pages.adminSetup.steps.step6')}</li>
           </ol>
         </div>
         
@@ -74,19 +88,19 @@ function AdminSetup() {
           {loading ? (
             <>
               <div className="loading-spinner-small"></div>
-              <span>Setting up admin account...</span>
+              <span>{t('pages.adminSetup.setupInProgress')}</span>
             </>
           ) : (
             <>
               <i className="fas fa-user-plus"></i>
-              <span>Create Admin Account</span>
+              <span>{t('pages.adminSetup.btn_create')}</span>
             </>
           )}
         </button>
         
         <div className="login-footer">
-          <p>© {new Date().getFullYear()} - Hazri System - Darulifta</p>
-          <p><Link to="/login">Back to Login</Link></p>
+          <p>© {new Date().getFullYear()} - {t('app.title')}</p>
+          <p><Link to="/login">{t('pages.adminSetup.backToLogin')}</Link></p>
         </div>
       </div>
     </div>
@@ -94,3 +108,4 @@ function AdminSetup() {
 }
 
 export default AdminSetup; 
+            

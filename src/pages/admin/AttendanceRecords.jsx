@@ -3,6 +3,10 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { getTeachers, getAllAttendance } from '../../services/firebase';
 import '../../App.css';
+import { ThemeToggle } from '../../components/ui/ThemeToggle';
+import { LanguageSwitcher } from '../../components/ui/LanguageSwitcher';
+import { useTranslation } from 'react-i18next';
+import { Helmet } from 'react-helmet-async';
 
 // Function to format time in 12-hour format (AM/PM)
 const formatTime = (timeString) => {
@@ -23,6 +27,7 @@ const calculateDetailedDeduction = (record) => {
 };
 
 function AttendanceRecords() {
+  const { t } = useTranslation();
   const [records, setRecords] = useState([]);
   const [teachers, setTeachers] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
@@ -52,14 +57,14 @@ function AttendanceRecords() {
         setRecords(attendanceData);
       } catch (error) {
         console.error('Error loading data:', error);
-        alert('ڈیٹا لوڈ کرنے میں خرابی ہوئی ہے۔ براہ کرم صفحہ ریفریش کریں۔');
+        alert(t('components.error.generic'));
       } finally {
         setIsLoading(false);
       }
     };
 
     loadData();
-  }, []);
+  }, [t]);
 
   // Handle logout
   const handleLogout = async () => {
@@ -93,10 +98,15 @@ function AttendanceRecords() {
 
   return (
     <div className="dashboard">
+      <Helmet>
+        <title>{t('pages.attendanceRecords.title')}</title>
+        <meta name="description" content={t('app.subtitle')} />
+      </Helmet>
+
       {isLoading && (
         <div className="loading-overlay">
           <div className="loading-spinner"></div>
-          <p>برائے مہربانی انتظار کریں...</p>
+          <p>{t('components.loading')}</p>
         </div>
       )}
 
@@ -104,23 +114,25 @@ function AttendanceRecords() {
       <nav className="admin-nav">
         <div className="admin-nav-brand">
           <i className="fas fa-user-clock"></i>
-          <span>حاضری نظام</span>
+          <span>{t('app.title')}</span>
         </div>
         <div className="admin-nav-menu">
           <Link to="/admin" className="admin-nav-link">
-            <i className="fas fa-tachometer-alt"></i> ڈیش بورڈ
+            <i className="fas fa-tachometer-alt"></i> {t('components.nav.dashboard')}
           </Link>
           <Link to="/admin/teachers" className="admin-nav-link">
-            <i className="fas fa-chalkboard-teacher"></i> اساتذہ
+            <i className="fas fa-chalkboard-teacher"></i> {t('components.nav.teachers')}
           </Link>
           <Link to="/admin/attendance" className="admin-nav-link active">
-            <i className="fas fa-clipboard-list"></i> حاضری ریکارڈ
+            <i className="fas fa-clipboard-list"></i> {t('components.nav.attendance')}
           </Link>
         </div>
         <div className="admin-nav-user">
-          <span>خوش آمدید، {currentUser?.name}</span>
+          <LanguageSwitcher />
+          <ThemeToggle />
+          <span>{t('components.nav.welcome')}, {currentUser?.name}</span>
           <button onClick={handleLogout} className="logout-button">
-            <i className="fas fa-sign-out-alt"></i> لاگ آؤٹ
+            <i className="fas fa-sign-out-alt"></i> {t('components.nav.logout')}
           </button>
         </div>
       </nav>
@@ -129,67 +141,67 @@ function AttendanceRecords() {
       <header className="dashboard-header">
         <div className="dashboard-title">
           <i className="fas fa-clipboard-list dashboard-icon"></i>
-          <h1>حاضری ریکارڈز</h1>
+          <h1>{t('pages.attendanceRecords.heading')}</h1>
         </div>
         <div className="filters attendance-filters">
           <div className="filter-row">
             <div className="filter-group">
-              <label htmlFor="date"><i className="fas fa-calendar-day"></i> تاریخ:</label>
+              <label htmlFor="date"><i className="fas fa-calendar-day"></i> {t('pages.attendanceRecords.searchDate')}:</label>
               <input
                 type="date"
                 id="date"
                 value={selectedDate}
                 onChange={(e) => setSelectedDate(e.target.value)}
                 className="filter-input"
-                placeholder="تمام تاریخیں"
+                placeholder={t('pages.attendanceRecords.allDates')}
               />
               {selectedDate && (
                 <button
                   type="button"
                   onClick={() => setSelectedDate('')}
                   className="clear-filter-btn"
-                  title="تمام تاریخیں دکھائیں"
+                  title={t('pages.attendanceRecords.showAllDates')}
                 >
                   <i className="fas fa-times"></i>
                 </button>
               )}
             </div>
             <div className="filter-group">
-              <label htmlFor="teacher"><i className="fas fa-chalkboard-teacher"></i> استاد:</label>
+              <label htmlFor="teacher"><i className="fas fa-chalkboard-teacher"></i> {t('pages.attendanceRecords.searchTeacher')}:</label>
               <select
                 id="teacher"
                 value={selectedTeacher}
                 onChange={(e) => setSelectedTeacher(e.target.value)}
                 className="filter-input"
               >
-                <option value="">تمام اساتذہ</option>
+                <option value="">{t('pages.attendanceRecords.allTeachers')}</option>
                 {teachers.map((teacher) => (
                   <option key={teacher.id} value={teacher.id}>{teacher.name}</option>
                 ))}
               </select>
             </div>
             <div className="filter-group">
-              <label htmlFor="status"><i className="fas fa-clipboard-check"></i> حالت:</label>
+              <label htmlFor="status"><i className="fas fa-clipboard-check"></i> {t('pages.attendanceRecords.status')}:</label>
               <select
                 id="status"
                 value={selectedStatus}
                 onChange={(e) => setSelectedStatus(e.target.value)}
                 className="filter-input"
               >
-                <option value="all">تمام</option>
-                <option value="present">حاضر</option>
-                <option value="absent">غیر حاضر</option>
-                <option value="leave">چھٹی</option>
+                <option value="all">{t('pages.attendanceRecords.allStatus')}</option>
+                <option value="present">{t('components.attendanceStatus.present')}</option>
+                <option value="absent">{t('components.attendanceStatus.absent')}</option>
+                <option value="leave">{t('components.attendanceStatus.leave')}</option>
               </select>
             </div>
           </div>
           <div className="filter-row">
             <div className="filter-group search-group">
-              <label htmlFor="search"><i className="fas fa-search"></i> تلاش:</label>
+              <label htmlFor="search"><i className="fas fa-search"></i> {t('pages.attendanceRecords.search')}:</label>
               <input
                 type="text"
                 id="search"
-                placeholder="استاد کا نام تلاش کریں..."
+                placeholder={t('pages.attendanceRecords.searchTeacherName')}
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="filter-input"
@@ -201,7 +213,7 @@ function AttendanceRecords() {
                 className="refresh-button"
                 disabled={isLoading}
               >
-                <i className={`fas fa-sync ${isLoading ? 'fa-spin' : ''}`}></i> ریفریش
+                <i className={`fas fa-sync ${isLoading ? 'fa-spin' : ''}`}></i> {t('components.buttons.refresh')}
               </button>
             </div>
           </div>
@@ -213,11 +225,11 @@ function AttendanceRecords() {
         <div className="active-filters-indicator">
           <div className="filter-info">
             <i className="fas fa-filter"></i>
-            <span>فعال فلٹرز:</span>
-            {selectedDate && <span className="filter-tag">تاریخ: {selectedDate}</span>}
-            {selectedTeacher && <span className="filter-tag">استاد: {teachers.find(t => t.id === selectedTeacher)?.name}</span>}
-            {selectedStatus !== 'all' && <span className="filter-tag">حالت: {selectedStatus === 'present' ? 'حاضر' : selectedStatus === 'absent' ? 'غیر حاضر' : 'چھٹی'}</span>}
-            {searchTerm && <span className="filter-tag">تلاش: {searchTerm}</span>}
+            <span>{t('pages.attendanceRecords.activeFilters')}:</span>
+            {selectedDate && <span className="filter-tag">{t('pages.attendanceRecords.table.date')}: {selectedDate}</span>}
+            {selectedTeacher && <span className="filter-tag">{t('pages.attendanceRecords.table.teacher')}: {teachers.find(t => t.id === selectedTeacher)?.name}</span>}
+            {selectedStatus !== 'all' && <span className="filter-tag">{t('pages.attendanceRecords.status')}: {t(`components.attendanceStatus.${selectedStatus}`)}</span>}
+            {searchTerm && <span className="filter-tag">{t('pages.attendanceRecords.search')}: {searchTerm}</span>}
           </div>
           <button
             onClick={() => {
@@ -228,7 +240,7 @@ function AttendanceRecords() {
             }}
             className="clear-all-filters-btn"
           >
-            <i className="fas fa-times"></i> تمام فلٹرز صاف کریں
+            <i className="fas fa-times"></i> {t('pages.attendanceRecords.clearAllFilters')}
           </button>
         </div>
       )}
@@ -237,27 +249,27 @@ function AttendanceRecords() {
       <div className="summary-cards">
         <div className="summary-card">
           <i className="fas fa-clipboard-list summary-icon"></i>
-          <h3>کل ریکارڈز</h3>
+          <h3>{t('pages.attendanceRecords.totalRecords')}</h3>
           <p>{filteredRecords.length}</p>
         </div>
         <div className="summary-card">
           <i className="fas fa-check-circle summary-icon"></i>
-          <h3>حاضر</h3>
+          <h3>{t('components.attendanceStatus.present')}</h3>
           <p>{filteredRecords.filter(r => r.status === 'present').length}</p>
         </div>
         <div className="summary-card">
           <i className="fas fa-times-circle summary-icon"></i>
-          <h3>غیر حاضر</h3>
+          <h3>{t('components.attendanceStatus.absent')}</h3>
           <p>{filteredRecords.filter(r => r.status === 'absent').length}</p>
         </div>
         <div className="summary-card">
           <i className="fas fa-calendar-minus summary-icon"></i>
-          <h3>چھٹی</h3>
+          <h3>{t('components.attendanceStatus.leave')}</h3>
           <p>{filteredRecords.filter(r => r.status === 'leave').length}</p>
         </div>
         <div className="summary-card">
           <i className="fas fa-money-bill-wave summary-icon"></i>
-          <h3>کل کٹوتی</h3>
+          <h3>{t('pages.attendanceRecords.totalDeduction')}</h3>
           <p>Rs. {totalSalaryDeduction.toLocaleString()}</p>
         </div>
       </div>
@@ -267,14 +279,14 @@ function AttendanceRecords() {
         <table className="data-table">
           <thead>
             <tr>
-              <th>تاریخ</th>
-              <th>استاد</th>
-              <th>حالت</th>
-              <th>چیک ان</th>
-              <th>چیک آؤٹ</th>
-              <th>کام کے گھنٹے</th>
-              <th>تفصیلات</th>
-              <th>کٹوتی</th>
+              <th>{t('pages.attendanceRecords.table.date')}</th>
+              <th>{t('pages.attendanceRecords.table.teacher')}</th>
+              <th>{t('pages.attendanceRecords.table.status')}</th>
+              <th>{t('pages.attendanceRecords.table.checkIn')}</th>
+              <th>{t('pages.attendanceRecords.table.checkOut')}</th>
+              <th>{t('pages.attendanceRecords.table.workingHours')}</th>
+              <th>{t('pages.attendanceRecords.table.details')}</th>
+              <th>{t('pages.attendanceRecords.table.deduction')}</th>
             </tr>
           </thead>
           <tbody>
@@ -286,15 +298,15 @@ function AttendanceRecords() {
                   <td>
                     {record.status === 'present' ? (
                       <span className="status-badge present">
-                        <i className="fas fa-check-circle"></i> حاضر
+                        <i className="fas fa-check-circle"></i> {t('components.attendanceStatus.present')}
                       </span>
                     ) : record.status === 'absent' ? (
                       <span className="status-badge absent">
-                        <i className="fas fa-times-circle"></i> غیر حاضر
+                        <i className="fas fa-times-circle"></i> {t('components.attendanceStatus.absent')}
                       </span>
                     ) : (
                       <span className="status-badge leave">
-                        <i className="fas fa-calendar-minus"></i> چھٹی
+                        <i className="fas fa-calendar-minus"></i> {t('components.attendanceStatus.leave')}
                       </span>
                     )}
                   </td>
@@ -303,14 +315,14 @@ function AttendanceRecords() {
                   <td>{record.workHours || '0.00'}</td>
                   <td>
                     <div className="status-flags">
-                      {record.status === 'present' && record.isLate && (
-                        <span className="status-tag late">دیر سے آئے</span>
+                      {record.isLate && (
+                        <span className="status-tag late">{t('components.attendanceFlags.late')}</span>
                       )}
-                      {record.status === 'present' && record.isShortDay && (
-                        <span className="status-tag short">جلدی گئے</span>
+                      {record.isShortDay && (
+                        <span className="status-tag short">{t('components.attendanceFlags.shortDay')}</span>
                       )}
-                      {record.status === 'leave' && (
-                        <span className="notes-text">{record.notes || 'چھٹی کی وضاحت نہیں'}</span>
+                      {record.notes && (
+                        <span className="notes-text">{record.notes}</span>
                       )}
                     </div>
                   </td>
@@ -320,7 +332,7 @@ function AttendanceRecords() {
             ) : (
               <tr>
                 <td colSpan="8" className="empty-message">
-                  <i className="fas fa-clipboard-list"></i> منتخب معیار کے مطابق کوئی ریکارڈ نہیں ملا
+                  <i className="fas fa-info-circle"></i> {t('pages.attendanceRecords.noRecordsFound')}
                 </td>
               </tr>
             )}
@@ -329,7 +341,7 @@ function AttendanceRecords() {
       </div>
 
       <footer className="dashboard-footer">
-        <p>© {new Date().getFullYear()} - حاضری نظام - دارالافتا</p>
+        <p>© {new Date().getFullYear()} - {t('app.title')}</p>
       </footer>
     </div>
   );

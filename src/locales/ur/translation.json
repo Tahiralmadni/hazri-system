@@ -1,0 +1,251 @@
+{
+  "app": {
+    "title": "حاضری نظام",
+    "subtitle": "حاضری اور تنخواہ کا نظام"
+  },
+  "months": {
+    "january": "جنوری",
+    "february": "فروری",
+    "march": "مارچ",
+    "april": "اپریل",
+    "may": "مئی",
+    "june": "جون",
+    "july": "جولائی",
+    "august": "اگست",
+    "september": "ستمبر",
+    "october": "اکتوبر",
+    "november": "نومبر",
+    "december": "دسمبر"
+  },
+  "pages": {
+    "login": {
+      "title": "لاگ ان - حاضری نظام",
+      "heading": "لاگ ان کریں",
+      "username": "صارف نام",
+      "password": "پاس ورڈ",
+      "btn_login": "لاگ ان",
+      "remember": "مجھے یاد رکھیں",
+      "adminSetup": "ایڈمن سیٹ اپ"
+    },
+    "adminSetup": {
+      "title": "ایڈمن سیٹ اپ - حاضری نظام",
+      "heading": "ایڈمن اکاؤنٹ بنائیں",
+      "subtitle": "حاضری نظام کیلئے اپنا ایڈمن اکاؤنٹ بنائیں",
+      "name": "نام",
+      "username": "صارف نام",
+      "password": "پاس ورڈ",
+      "confirm": "پاس ورڈ کی تصدیق کریں",
+      "btn_create": "اکاؤنٹ بنائیں",
+      "success": "ایڈمن اکاؤنٹ کامیابی سے بنایا گیا۔",
+      "loginNow": "اب آپ",
+      "login": "لاگ ان",
+      "withCredentials": "کر سکتے ہیں ان تفصیلات کے ساتھ",
+      "email": "ای میل",
+      "password": "پاس ورڈ",
+      "backToLogin": "لاگ ان صفحے پر واپس جائیں",
+      "beforeProceeding": "آگے بڑھنے سے پہلے",
+      "setupInProgress": "ایڈمن اکاؤنٹ بنایا جا رہا ہے...",
+      "steps": {
+        "step1": "فائربیس کنسول پر جائیں (https://console.firebase.google.com/)",
+        "step2": "اپنا پروجیکٹ منتخب کریں: \"expense-tracker-fd9cc\"",
+        "step3": "\"Authentication\" → \"Sign-in method\" پر جائیں",
+        "step4": "\"Email/Password\" پروائیڈر کو فعال کریں",
+        "step5": "تبدیلیاں محفوظ کریں",
+        "step6": "یہاں واپس آ کر نیچے دیے گئے بٹن پر کلک کریں"
+      },
+      "errors": {
+        "alreadyExists": "ایڈمن اکاؤنٹ پہلے سے موجود ہے! آپ دیئے گئے تفصیلات سے لاگ ان کر سکتے ہیں۔",
+        "notEnabled": "فائربیس کنسول میں ای میل/پاس ورڈ اتھینٹیکیشن فعال نہیں ہے۔ براہ کرم پہلے اسے فعال کریں۔"
+      }
+    },
+    "adminDashboard": {
+      "title": "ایڈمن ڈیش بورڈ - حاضری نظام",
+      "heading": "ایڈمن ڈیش بورڈ",
+      "totalTeachers": "کل اساتذہ",
+      "presentToday": "آج حاضر",
+      "absentToday": "آج غیر حاضر",
+      "onLeave": "آج چھٹی پر",
+      "refreshData": "ڈیٹا ریفریش کریں",
+      "addTeacher": "نیا استاد شامل کریں",
+      "viewAttendance": "حاضری ریکارڈ دیکھیں"
+    },
+    "teacherManagement": {
+      "title": "اساتذہ کا انتظام - حاضری نظام",
+      "heading": "اساتذہ کا انتظام",
+      "addTeacher": "نیا استاد شامل کریں",
+      "editTeacher": "استاد کی معلومات میں ترمیم",
+      "searchTeacher": "استاد تلاش کریں",
+      "searchPlaceholder": "نام، عہدہ یا صارف نام سے تلاش کریں...",
+      "defaultDesignation": "جونیئر استاد",
+      "confirmDelete": "کیا آپ واقعی اس استاد کو حذف کرنا چاہتے ہیں؟",
+      "noTeachersFound": "کوئی استاد موجود نہیں۔ نیا استاد شامل کرنے کے لیے 'نیا استاد شامل کریں' بٹن پر کلک کریں",
+      "errors": {
+        "noId": "استاد کی شناخت (ID) موجود نہیں ہے"
+      },
+      "form": {
+        "name": "مکمل نام",
+        "namePlaceholder": "استاد کا مکمل نام",
+        "designation": "عہدہ",
+        "salary": "ماہانہ تنخواہ",
+        "startTime": "آغاز کار",
+        "endTime": "اختتام کار",
+        "contact": "رابطہ نمبر",
+        "email": "ای میل"
+      },
+      "table": {
+        "name": "نام",
+        "username": "صارف نام",
+        "designation": "عہدہ",
+        "salary": "تنخواہ",
+        "workingHours": "کام کے اوقات",
+        "joinDate": "شمولیت کی تاریخ",
+        "contact": "رابطہ نمبر",
+        "email": "ای میل",
+        "actions": "اعمال"
+      }
+    },
+    "teacherProfile": {
+      "title": "استاد کی پروفائل: {{name}} - حاضری نظام",
+      "notFound": "استاد نہیں ملا - حاضری نظام",
+      "teacherNotFound": "استاد کی معلومات نہیں ملی",
+      "returnToList": "اساتذہ کی فہرست پر واپس جائیں",
+      "backToTeachers": "واپس جائیں",
+      "loginInfo": "لاگ ان معلومات",
+      "email": "ای میل",
+      "username": "صارف نام",
+      "password": "پاس ورڈ",
+      "notAvailable": "دستیاب نہیں",
+      "salary": "تنخواہ",
+      "workingHours": "کام کے اوقات",
+      "contactNumber": "رابطہ نمبر",
+      "joiningDate": "تاریخ شمولیت",
+      "generalSubjects": "عام مضامین"
+    },
+    "teacherAttendance": {
+      "title": "میری حاضری کا ریکارڈ - حاضری نظام",
+      "heading": "میری حاضری کا ریکارڈ",
+      "month": "مہینہ",
+      "year": "سال",
+      "status": "حالت",
+      "totalDays": "کل دن",
+      "deduction": "کٹوتی",
+      "allMonths": "تمام مہینے",
+      "allStatus": "تمام حالات",
+      "allAttendanceRecords": "تمام حاضری ریکارڈز",
+      "monthlyRecordDetail": "{{month}} {{year}} حاضری کا تفصیلی ریکارڈ",
+      "noRecordsFound": "منتخب مہینے میں کوئی حاضری ریکارڈ نہیں ملا",
+      "noLeaveReason": "چھٹی کی وضاحت نہیں"
+    },
+    "attendanceRecords": {
+      "title": "حاضری ریکارڈ - حاضری نظام",
+      "heading": "حاضری ریکارڈ",
+      "searchDate": "تاریخ کے مطابق تلاش کریں",
+      "searchTeacher": "استاد کے مطابق تلاش کریں",
+      "search": "تلاش",
+      "searchTeacherName": "استاد کا نام تلاش کریں...",
+      "allDates": "تمام تاریخیں",
+      "allTeachers": "تمام اساتذہ",
+      "allStatus": "تمام حالات",
+      "status": "حالت",
+      "export": "ایکسپورٹ کریں",
+      "showAllDates": "تمام تاریخیں دکھائیں",
+      "totalRecords": "کل ریکارڈز",
+      "totalDeduction": "کل کٹوتی",
+      "noRecordsFound": "منتخب معیار کے مطابق کوئی ریکارڈ نہیں ملا",
+      "activeFilters": "فعال فلٹرز",
+      "clearAllFilters": "تمام فلٹرز صاف کریں",
+      "table": {
+        "date": "تاریخ",
+        "teacher": "استاد",
+        "status": "حالت",
+        "checkIn": "چیک ان",
+        "checkOut": "چیک آؤٹ",
+        "workingHours": "کام کے گھنٹے",
+        "details": "تفصیلات",
+        "deduction": "کٹوتی"
+      }
+    },
+    "teacherDashboard": {
+      "title": "استاد ڈیش بورڈ - حاضری نظام",
+      "heading": "استاد کا ڈیش بورڈ",
+      "workingHours": "آپ کے کام کے اوقات",
+      "startTime": "آغاز کار",
+      "endTime": "اختتام کار",
+      "salary": "ماہانہ تنخواہ",
+      "markAttendance": "حاضری درج کریں",
+      "attendanceRecords": "حاضری ریکارڈ",
+      "day": "دن",
+      "hours": "گھنٹے",
+      "notes": "نوٹس",
+      "notesPlaceholder": "کوئی اضافی معلومات...",
+      "noAttendanceRecords": "حاضری کا کوئی ریکارڈ موجود نہیں",
+      "attendanceSuccess": "حاضری کامیابی سے درج ہو گئی ہے",
+      "attendanceError": "حاضری جمع کرانے میں خرابی آگئی ہے۔ براہ کرم دوبارہ کوشش کریں۔",
+      "debugInfo": "ڈیبگ معلومات",
+      "teacherId": "استاد کی شناخت",
+      "teacherName": "استاد کا نام",
+      "recordsFound": "ریکارڈز ملے",
+      "totalRecords": "ڈیٹابیس میں کل ریکارڈز",
+      "teacherExists": "استاد موجود ہے",
+      "checkConsole": "تفصیلی لاگز کے لیے براؤزر کنسول چیک کریں",
+      "debugError": "ڈیبگ ایرر:"
+    }
+  },
+  "components": {
+    "nav": {
+      "dashboard": "ڈیش بورڈ",
+      "teachers": "اساتذہ کا انتظام",
+      "attendance": "حاضری ریکارڈ",
+      "debug": "ڈیٹا مرمت",
+      "welcome": "خوش آمدید",
+      "logout": "لاگ آؤٹ",
+      "teacher": "استاد"
+    },
+    "themeToggle": {
+      "light": "روشن",
+      "dark": "اندھیرا"
+    },
+    "attendanceStatus": {
+      "present": "حاضر",
+      "absent": "غیر حاضر",
+      "leave": "چھٹی",
+      "leaveDefaultNote": "چھٹی لی گئی"
+    },
+    "attendanceFlags": {
+      "late": "دیر سے آئے",
+      "shortDay": "جلدی گئے"
+    },
+    "buttons": {
+      "save": "محفوظ کریں",
+      "cancel": "منسوخ کریں",
+      "delete": "حذف کریں",
+      "edit": "ترمیم کریں",
+      "view": "دیکھیں",
+      "add": "شامل کریں",
+      "refresh": "ریفریش کریں",
+      "export": "ایکسپورٹ کریں",
+      "search": "تلاش کریں",
+      "clear": "صاف کریں"
+    },
+    "form": {
+      "required": "یہ فیلڈ درکار ہے",
+      "invalidEmail": "برائے مہربانی درست ای میل درج کریں",
+      "passwordMismatch": "پاس ورڈز مماثل نہیں ہیں",
+      "invalidSalary": "برائے مہربانی درست تنخواہ درج کریں",
+      "submit": "محفوظ کریں",
+      "cancel": "منسوخ کریں"
+    },
+    "loading": "برائے مہربانی انتظار کریں...",
+    "error": {
+      "title": "مسئلہ پیش آ گیا ہے",
+      "generic": "ڈیٹا لوڈ کرنے میں دشواری ہوئی ہے۔",
+      "retry": "صفحہ ریفریش کریں",
+      "relogin": "دوبارہ لاگ ان کریں",
+      "noUserData": "صارف کی معلومات دستیاب نہیں ہیں۔",
+      "teacherNotFound": "استاد کی معلومات نہیں ملی۔",
+      "unknownError": "نامعلوم خرابی پیش آگئی ہے"
+    },
+    "yes": "ہاں",
+    "no": "نہیں"
+  }
+} 

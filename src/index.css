@@ -170,3 +170,93 @@ em, i {
 
 /* Font Awesome Integration */
 @import url('https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css');
+
+/* Custom styles for NProgress bar */
+#nprogress .bar {
+  background: #2ecc71 !important;
+  height: 3px !important;
+}
+
+#nprogress .peg {
+  box-shadow: 0 0 10px #2ecc71, 0 0 5px #2ecc71 !important;
+}
+
+/* Responsive styles for all devices */
+@media (max-width: 1200px) {
+  .dashboard {
+    padding: 1.5rem;
+    padding-top: 80px;
+  }
+  
+  .dashboard-cards, .stat-cards {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 768px) {
+  .dashboard {
+    padding: 1rem;
+    padding-top: 80px;
+  }
+  
+  .dashboard-cards, .stat-cards {
+    grid-template-columns: 1fr;
+  }
+  
+  .admin-nav {
+    flex-direction: column;
+    padding: 0.5rem;
+  }
+  
+  .admin-nav-brand {
+    margin-bottom: 0.5rem;
+  }
+  
+  .admin-nav-menu {
+    width: 100%;
+    justify-content: center;
+    margin-bottom: 0.5rem;
+  }
+  
+  .admin-nav-user {
+    width: 100%;
+    justify-content: center;
+    flex-wrap: wrap;
+  }
+  
+  .filters {
+    flex-direction: column;
+  }
+  
+  .data-table-container {
+    overflow-x: auto;
+  }
+  
+  .data-table {
+    min-width: 650px;
+  }
+}
+
+@media (max-width: 480px) {
+  .admin-nav-link {
+    padding: 0.3rem 0.5rem;
+    font-size: 0.9rem;
+  }
+  
+  .logout-button {
+    padding: 0.3rem 0.5rem;
+    font-size: 0.8rem;
+  }
+  
+  .admin-nav-brand {
+    font-size: 1rem;
+  }
+  
+  .admin-nav-user span {
+    display: none;
+  }
+  
+  .dashboard-title {
+    flex-direction: column;
+  }
+}

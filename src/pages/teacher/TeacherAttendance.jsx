@@ -3,6 +3,10 @@ import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { getTeacherAttendance, getAttendanceSummary, getTeacher } from '../../services/firebase';
 import '../../App.css';
+import { ThemeToggle } from '../../components/ui/ThemeToggle';
+import { LanguageSwitcher } from '../../components/ui/LanguageSwitcher';
+import { useTranslation } from 'react-i18next';
+import { Helmet } from 'react-helmet-async';
 
 // Function to format time in 12-hour format (AM/PM)
 const formatTime = (timeString) => {
@@ -32,6 +36,7 @@ const getCurrentMonthYear = () => {
 };
 
 function TeacherAttendance() {
+  const { t } = useTranslation();
   const { month: currentMonth, year: currentYear } = getCurrentMonthYear();
 
   const [records, setRecords] = useState([]);
@@ -51,18 +56,18 @@ function TeacherAttendance() {
 
   // Generate array of months for select dropdown
   const months = [
-    { value: 1, label: 'جنوری' },
-    { value: 2, label: 'فروری' },
-    { value: 3, label: 'مارچ' },
-    { value: 4, label: 'اپریل' },
-    { value: 5, label: 'مئی' },
-    { value: 6, label: 'جون' },
-    { value: 7, label: 'جولائی' },
-    { value: 8, label: 'اگست' },
-    { value: 9, label: 'ستمبر' },
-    { value: 10, label: 'اکتوبر' },
-    { value: 11, label: 'نومبر' },
-    { value: 12, label: 'دسمبر' }
+    { value: 1, label: t('months.january') },
+    { value: 2, label: t('months.february') },
+    { value: 3, label: t('months.march') },
+    { value: 4, label: t('months.april') },
+    { value: 5, label: t('months.may') },
+    { value: 6, label: t('months.june') },
+    { value: 7, label: t('months.july') },
+    { value: 8, label: t('months.august') },
+    { value: 9, label: t('months.september') },
+    { value: 10, label: t('months.october') },
+    { value: 11, label: t('months.november') },
+    { value: 12, label: t('months.december') }
   ];
 
   // Generate array of years (current year - 2 to current year + 1)
@@ -96,15 +101,12 @@ function TeacherAttendance() {
       if (teacher) {
         setTeacherData(teacher);
       } else {
-        console.error("Teacher data not found");
         setErrorState(true);
-        throw new Error("استاد کی معلومات نہیں ملی۔"); // Specific error
+        throw new Error(t('components.error.teacherNotFound'));
       }
 
       // Get all attendance records
-      console.log("Fetching attendance records for teacher ID:", currentUser.id); // Debug log
       const attendanceRecords = await getTeacherAttendance(currentUser.id);
-      console.log("Result of getTeacherAttendance:", attendanceRecords); // Debug log
       setRecords(attendanceRecords || []);
 
       // Get attendance summary for selected month/year
@@ -118,7 +120,7 @@ function TeacherAttendance() {
       console.error('Error loading attendance data:', error);
       setErrorState(true);
       // Set specific error message
-      setLoadingError(error.message || "ڈیٹا لوڈ کرنے میں نامعلوم خرabi ہوئی ہے۔");
+      setLoadingError(error.message || t('components.error.generic'));
     } finally {
       setIsLoading(false);
     }
@@ -129,12 +131,10 @@ function TeacherAttendance() {
     const shouldRefresh = location.state?.refreshAttendance;
 
     if (shouldRefresh) {
-      console.log("Refreshing attendance data due to navigation state.");
       loadAttendanceData();
       // Clear the navigation state to prevent unnecessary refetches
       window.history.replaceState({}, document.title);
     } else {
-      console.log("Loading attendance data normally.");
       loadAttendanceData();
     }
 
@@ -198,10 +198,15 @@ function TeacherAttendance() {
 
   return (
     <div className="dashboard teacher-dashboard">
+      <Helmet>
+        <title>{t('pages.teacherAttendance.title')}</title>
+        <meta name="description" content={t('app.subtitle')} />
+      </Helmet>
+
       {isLoading && (
         <div className="loading-overlay">
           <div className="loading-spinner"></div>
-          <p>برائے مہربانی انتظار کریں...</p>
+          <p>{t('components.loading')}</p>
         </div>
       )}
 
@@ -209,14 +214,14 @@ function TeacherAttendance() {
         <div className="error-container">
           <div className="error-message-box">
             <i className="fas fa-exclamation-triangle"></i>
-            <h2>مسئلہ پیش آ گیا ہے</h2>
-            <p>{loadingError || 'ڈیٹا لوڈ کرنے میں دشواری ہوئی ہے۔'}</p> {/* Display specific error */}
+            <h2>{t('components.error.title')}</h2>
+            <p>{loadingError || t('components.error.generic')}</p>
             <div className="error-actions">
               <button onClick={() => window.location.reload()} className="refresh-button">
-                <i className="fas fa-sync"></i> صفحہ ریفریش کریں
+                <i className="fas fa-sync"></i> {t('components.error.retry')}
               </button>
               <button onClick={handleLogout} className="logout-button error-logout">
-                <i className="fas fa-sign-out-alt"></i> دوبارہ لاگ ان کریں
+                <i className="fas fa-sign-out-alt"></i> {t('components.error.relogin')}
               </button>
             </div>
           </div>
@@ -227,20 +232,22 @@ function TeacherAttendance() {
       <nav className="admin-nav teacher-nav">
         <div className="admin-nav-brand">
           <i className="fas fa-user-clock"></i>
-          <span>حاضری نظام</span>
+          <span>{t('app.title')}</span>
         </div>
         <div className="admin-nav-menu">
           <Link to="/teacher" className="admin-nav-link">
-            <i className="fas fa-tachometer-alt"></i> ڈیش بورڈ
+            <i className="fas fa-tachometer-alt"></i> {t('components.nav.dashboard')}
           </Link>
           <Link to="/teacher/attendance" className="admin-nav-link active">
-            <i className="fas fa-clipboard-list"></i> حاضری ریکارڈ
+            <i className="fas fa-clipboard-list"></i> {t('components.nav.attendance')}
           </Link>
         </div>
         <div className="admin-nav-user">
-          <span>خوش آمدید، {currentUser?.name}</span>
+          <LanguageSwitcher />
+          <ThemeToggle />
+          <span>{t('components.nav.welcome')}, {currentUser?.name}</span>
           <button onClick={handleLogout} className="logout-button">
-            <i className="fas fa-sign-out-alt"></i> لاگ آؤٹ
+            <i className="fas fa-sign-out-alt"></i> {t('components.nav.logout')}
           </button>
         </div>
       </nav>
@@ -249,12 +256,12 @@ function TeacherAttendance() {
       <header className="dashboard-header">
         <div className="dashboard-title">
           <i className="fas fa-clipboard-list dashboard-icon"></i>
-          <h1>میری حاضری کا ریکارڈ</h1>
+          <h1>{t('pages.teacherAttendance.heading')}</h1>
         </div>
         <div className="filters">
           <div className="filter-row">
             <div className="filter-group">
-              <label htmlFor="month"><i className="fas fa-calendar-alt"></i> مہینہ:</label>
+              <label htmlFor="month"><i className="fas fa-calendar-alt"></i> {t('pages.teacherAttendance.month')}:</label>
               <select
                 id="month"
                 value={showAllMonths ? "all" : selectedMonth}
@@ -268,14 +275,14 @@ function TeacherAttendance() {
                 }}
                 className="filter-input"
               >
-                <option value="all">تمام مہینے</option>
+                <option value="all">{t('pages.teacherAttendance.allMonths')}</option>
                 {months.map((month) => (
                   <option key={month.value} value={month.value}>{month.label}</option>
                 ))}
               </select>
             </div>
             <div className="filter-group">
-              <label htmlFor="year"><i className="fas fa-calendar-day"></i> سال:</label>
+              <label htmlFor="year"><i className="fas fa-calendar-day"></i> {t('pages.teacherAttendance.year')}:</label>
               <select
                 id="year"
                 value={selectedYear}
@@ -288,17 +295,17 @@ function TeacherAttendance() {
               </select>
             </div>
             <div className="filter-group">
-              <label htmlFor="status"><i className="fas fa-filter"></i> حالت:</label>
+              <label htmlFor="status"><i className="fas fa-filter"></i> {t('pages.teacherAttendance.status')}:</label>
               <select
                 id="status"
                 value={selectedStatus}
                 onChange={(e) => setSelectedStatus(e.target.value)}
                 className="filter-input"
               >
-                <option value="all">تمام</option>
-                <option value="present">حاضر</option>
-                <option value="absent">غیر حاضر</option>
-                <option value="leave">چھٹی</option>
+                <option value="all">{t('pages.teacherAttendance.allStatus')}</option>
+                <option value="present">{t('components.attendanceStatus.present')}</option>
+                <option value="absent">{t('components.attendanceStatus.absent')}</option>
+                <option value="leave">{t('components.attendanceStatus.leave')}</option>
               </select>
             </div>
           </div>
@@ -308,7 +315,7 @@ function TeacherAttendance() {
               onClick={handleRefresh}
               disabled={isLoading} // Disable refresh while loading
             >
-              <i className={`fas fa-sync ${isLoading ? 'fa-spin' : ''}`}></i> ریفریش
+              <i className={`fas fa-sync ${isLoading ? 'fa-spin' : ''}`}></i> {t('components.buttons.refresh')}
             </button>
           </div>
         </div>
@@ -318,27 +325,27 @@ function TeacherAttendance() {
       <div className="summary-cards">
         <div className="summary-card">
           <i className="fas fa-calendar-check summary-icon"></i>
-          <h3>کل دن</h3>
+          <h3>{t('pages.teacherAttendance.totalDays')}</h3>
           <p>{showAllMonths ? filteredRecords.length : summary?.workingDays || '0'}</p>
         </div>
         <div className="summary-card">
           <i className="fas fa-check-circle summary-icon"></i>
-          <h3>حاضر</h3>
+          <h3>{t('components.attendanceStatus.present')}</h3>
           <p>{presentDays}</p>
         </div>
         <div className="summary-card">
           <i className="fas fa-calendar-minus summary-icon"></i>
-          <h3>چھٹی</h3>
+          <h3>{t('components.attendanceStatus.leave')}</h3>
           <p>{leaveDays}</p>
         </div>
         <div className="summary-card">
           <i className="fas fa-times-circle summary-icon"></i>
-          <h3>غیر حاضر</h3>
+          <h3>{t('components.attendanceStatus.absent')}</h3>
           <p>{absentDays}</p>
         </div>
         <div className="summary-card">
           <i className="fas fa-money-bill-wave summary-icon"></i>
-          <h3>کٹوتی</h3>
+          <h3>{t('pages.teacherAttendance.deduction')}</h3>
           <p>Rs. {totalSalaryDeduction.toLocaleString()}</p>
         </div>
       </div>
@@ -347,19 +354,21 @@ function TeacherAttendance() {
       <div className="table-container">
         <h3 className="section-title">
           <i className="fas fa-list"></i>
-          {showAllMonths ? 'تمام حاضری ریکارڈز' : `${getMonthName(selectedMonth)} ${selectedYear} حاضری کا تفصیلی ریکارڈ`}
+          {showAllMonths 
+            ? t('pages.teacherAttendance.allAttendanceRecords') 
+            : t('pages.teacherAttendance.monthlyRecordDetail', { month: getMonthName(selectedMonth), year: selectedYear })}
         </h3>
 
         <table className="data-table">
           <thead>
             <tr>
-              <th>تاریخ</th>
-              <th>حالت</th>
-              <th>چیک ان</th>
-              <th>چیک آؤٹ</th>
-              <th>کام کے گھنٹے</th>
-              <th>تفصیلات</th>
-              <th>کٹوتی</th>
+              <th>{t('pages.attendanceRecords.table.date')}</th>
+              <th>{t('pages.attendanceRecords.table.status')}</th>
+              <th>{t('pages.attendanceRecords.table.checkIn')}</th>
+              <th>{t('pages.attendanceRecords.table.checkOut')}</th>
+              <th>{t('pages.attendanceRecords.table.workingHours')}</th>
+              <th>{t('pages.attendanceRecords.table.details')}</th>
+              <th>{t('pages.attendanceRecords.table.deduction')}</th>
             </tr>
           </thead>
           <tbody>
@@ -370,15 +379,15 @@ function TeacherAttendance() {
                   <td>
                     {record.status === 'present' ? (
                       <span className="status-badge present">
-                        <i className="fas fa-check-circle"></i> حاضر
+                        <i className="fas fa-check-circle"></i> {t('components.attendanceStatus.present')}
                       </span>
                     ) : record.status === 'absent' ? (
                       <span className="status-badge absent">
-                        <i className="fas fa-times-circle"></i> غیر حاضر
+                        <i className="fas fa-times-circle"></i> {t('components.attendanceStatus.absent')}
                       </span>
                     ) : (
                       <span className="status-badge leave">
-                        <i className="fas fa-calendar-minus"></i> چھٹی
+                        <i className="fas fa-calendar-minus"></i> {t('components.attendanceStatus.leave')}
                       </span>
                     )}
                   </td>
@@ -388,13 +397,13 @@ function TeacherAttendance() {
                   <td>
                     <div className="status-flags">
                       {record.status === 'present' && record.isLate && (
-                        <span className="status-tag late">دیر سے آئے</span>
+                        <span className="status-tag late">{t('components.attendanceFlags.late')}</span>
                       )}
                       {record.status === 'present' && record.isShortDay && (
-                        <span className="status-tag short">جلدی گئے</span>
+                        <span className="status-tag short">{t('components.attendanceFlags.shortDay')}</span>
                       )}
                       {record.status === 'leave' && (
-                        <span className="notes-text">{record.notes || 'چھٹی کی وضاحت نہیں'}</span>
+                        <span className="notes-text">{record.notes || t('pages.teacherAttendance.noLeaveReason')}</span>
                       )}
                     </div>
                   </td>
@@ -404,7 +413,7 @@ function TeacherAttendance() {
             ) : (
               <tr>
                 <td colSpan="7" className="empty-message">
-                  <i className="fas fa-clipboard-list"></i> منتخب مہینے میں کوئی حاضری ریکارڈ نہیں ملا
+                  <i className="fas fa-clipboard-list"></i> {t('pages.teacherAttendance.noRecordsFound')}
                 </td>
               </tr>
             )}
@@ -413,7 +422,7 @@ function TeacherAttendance() {
       </div>
 
       <footer className="dashboard-footer">
-        <p>© {new Date().getFullYear()} - حاضری نظام - دارالافتا</p>
+        <p>© {new Date().getFullYear()} - {t('app.title')}</p>
       </footer>
     </div>
   );
