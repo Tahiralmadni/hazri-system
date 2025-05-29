@@ -22,7 +22,8 @@ function Login() {
     if (!username.trim() || !password.trim()) {
       return setError('Please enter username and password.');
     }
-      try {
+    
+    try {
       setError('');
       setLoading(true);
       
@@ -67,6 +68,11 @@ function Login() {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleAdminLogin = () => {
+    setUsername('admin');
+    // Password field is left empty deliberately as the user should still enter their password
   };
 
   return (
@@ -138,9 +144,6 @@ function Login() {
           </button>
         </form>
         
-        <div className="admin-setup-link">
-          <Link to="/admin-setup">Create Admin Account</Link>
-        </div>
         
       </div>
     </div>

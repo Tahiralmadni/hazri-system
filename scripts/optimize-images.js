@@ -1,20 +1,27 @@
 // This script optimizes all images in the assets directory
 // To run: node scripts/optimize-images.js
 
-const fs = require('fs');
-const path = require('path');
-const { execSync } = require('child_process');
+import fs from 'fs';
+import path from 'path';
+import { execSync } from 'child_process';
+import { fileURLToPath } from 'url';
+
+// Get the directory name in ES modules
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 // Check if sharp is installed
+let sharp;
 try {
-  require.resolve('sharp');
+  sharp = await import('sharp');
+  sharp = sharp.default;
 } catch (e) {
   console.log('Sharp is not installed. Installing now...');
   execSync('npm install --save-dev sharp');
   console.log('Sharp has been installed.');
+  const sharpModule = await import('sharp');
+  sharp = sharpModule.default;
 }
-
-const sharp = require('sharp');
 
 const assetsDir = path.join(__dirname, '../src/assets');
 const publicDir = path.join(__dirname, '../public');
@@ -82,20 +89,4 @@ async function processImages() {
 }
 
 processImages(); 
-// To run: node scripts/optimize-images.js
-
-const fs = require('fs');
-const path = require('path');
-const { execSync } = require('child_process');
-
-// Check if sharp is installed
-try {
-  require.resolve('sharp');
-} catch (e) {
-  console.log('Sharp is not installed. Installing now...');
-  execSync('npm install --save-dev sharp');
-  console.log('Sharp has been installed.');
-}
-
-const sharp = require('sharp');
 

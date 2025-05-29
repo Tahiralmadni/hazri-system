@@ -33,7 +33,6 @@
       "subtitle": "حاضری نظام کیلئے اپنا ایڈمن اکاؤنٹ بنائیں",
       "name": "نام",
       "username": "صارف نام",
-      "password": "پاس ورڈ",
       "confirm": "پاس ورڈ کی تصدیق کریں",
       "btn_create": "اکاؤنٹ بنائیں",
       "success": "ایڈمن اکاؤنٹ کامیابی سے بنایا گیا۔",
@@ -189,6 +188,24 @@
       "teacherExists": "استاد موجود ہے",
       "checkConsole": "تفصیلی لاگز کے لیے براؤزر کنسول چیک کریں",
       "debugError": "ڈیبگ ایرر:"
+    },
+    "settings": {
+      "title": "ترتیبات - حاضری نظام",
+      "subtitle": "اپنی تجربے کو اپنی پسند کے مطابق بنائیں اور اکاؤنٹ ترتیبات کا انتظام کریں",
+      "appearance": "ظاہری شکل",
+      "theme": "تھیم",
+      "themeDescription": "روشن اور تاریک موڈ کے درمیان تبدیل کریں",
+      "language": "زبان",
+      "languageDescription": "اپنی پسندیدہ زبان منتخب کریں",
+      "account": "اکاؤنٹ",
+      "profile": "پروفائل معلومات",
+      "profileDescription": "اپنے اکاؤنٹ کی تفصیلات دیکھیں",
+      "name": "نام",
+      "email": "ای میل",
+      "role": "کردار",
+      "adminRole": "منتظم",
+      "teacherRole": "استاد",
+      "languageChanged": "زبان {{language}} میں تبدیل کر دی گئی ہے"
     }
   },
   "components": {
@@ -199,7 +216,8 @@
       "debug": "ڈیٹا مرمت",
       "welcome": "خوش آمدید",
       "logout": "لاگ آؤٹ",
-      "teacher": "استاد"
+      "teacher": "استاد",
+      "settings": "ترتیبات"
     },
     "themeToggle": {
       "light": "روشن",

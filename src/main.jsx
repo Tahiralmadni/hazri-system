@@ -25,29 +25,7 @@ ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
     <HelmetProvider>
       <ThemeProvider>
-    <App />
-      </ThemeProvider>
-    </HelmetProvider>
-  </React.StrictMode>
-);
-
-
-// Add Font Awesome
-import '@fortawesome/fontawesome-free/css/all.min.css';
-
-// Configure NProgress
-NProgress.configure({ 
-  showSpinner: false,
-  minimum: 0.1,
-  easing: 'ease',
-  speed: 500
-});
-
-ReactDOM.createRoot(document.getElementById('root')).render(
-  <React.StrictMode>
-    <HelmetProvider>
-      <ThemeProvider>
-    <App />
+        <App />
       </ThemeProvider>
     </HelmetProvider>
   </React.StrictMode>

@@ -1,3 +1,8 @@
+/* Import external fonts and styles first */
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+Urdu:wght@400;500;600;700&display=swap');
+@import url('https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css');
+
+/* Tailwind directives */
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -68,16 +73,13 @@
 
 @layer base {
   * {
-    @apply border-border;
+    @apply border;
   }
   body {
     @apply bg-background text-foreground;
     font-feature-settings: "rlig" 1, "calt" 1;
   }
 }
-
-/* Import Noto Sans Urdu font for proper Urdu language support */
-@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+Urdu:wght@400;500;600;700&display=swap');
 
 /* Reset and base styles */
 html, body, div, span, applet, object, iframe,
@@ -167,9 +169,6 @@ strong, b {
 em, i {
   font-style: italic;
 }
-
-/* Font Awesome Integration */
-@import url('https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css');
 
 /* Custom styles for NProgress bar */
 #nprogress .bar {

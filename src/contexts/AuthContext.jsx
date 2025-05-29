@@ -41,14 +41,30 @@ export const AuthProvider = ({ children }) => {
     try {
       setLoading(true);
       setAuthError(null);
+      console.log(`Attempting login for username/email: ${username}`);
       
-      // First, try to find the teacher in Firestore
+      // First, try to find the teacher in Firestore by username or email (case insensitive)
       const teachers = await getTeachers();
-      const teacher = teachers.find(t => 
-        (t.email === username || t.username === username) && t.password === password
-      );
+      console.log(`Found ${teachers.length} teachers in database`);
+      
+      // Check for a match using case-insensitive comparison for username/email
+      const teacher = teachers.find(t => {
+        // Check username match
+        const usernameMatch = t.username && username && 
+          t.username.toLowerCase() === username.toLowerCase();
+        
+        // Check email match
+        const emailMatch = t.email && username && 
+          t.email.toLowerCase() === username.toLowerCase();
+        
+        // Check password (exact match)
+        const passwordMatch = t.password === password;
+        
+        return (usernameMatch || emailMatch) && passwordMatch;
+      });
 
       if (teacher) {
+        console.log(`Teacher found with matching credentials in Firestore: ${teacher.name}`);
         // Teacher found with matching credentials in Firestore
         const userData = {
           id: teacher.id,
@@ -63,15 +79,24 @@ export const AuthProvider = ({ children }) => {
         localStorage.setItem('currentUser', JSON.stringify(userData));
         return userData;
       }
-
-      // If no teacher found, try Firebase Authentication
-      const email = username.includes('@') ? username : `${username}@hazrisystem.com`;
-      try {
-        const userCredential = await loginWithEmail(email, password);
-        const user = userCredential.user;
+      
+      // Special handling for admin login
+      const isEmailFormat = username.includes('@');
+      const adminEmail = "tahiralmadni@gmail.com";
+      
+      // Check for admin login
+      if ((isEmailFormat && username.toLowerCase() === adminEmail.toLowerCase()) || 
+          (!isEmailFormat && username.toLowerCase() === "admin")) {
         
-        // Check if the user is an admin (tahiralmadni@gmail.com)
-        if (email === 'tahiralmadni@gmail.com') {
+        // Try Firebase Authentication for admin
+        try {
+          const emailToUse = isEmailFormat ? username : adminEmail;
+          console.log(`Trying admin login with email: ${emailToUse}`);
+          
+          const userCredential = await loginWithEmail(emailToUse, password);
+          const user = userCredential.user;
+          
+          console.log('Admin user authenticated successfully');
           const userData = {
             id: user.uid,
             email: user.email,
@@ -83,58 +108,31 @@ export const AuthProvider = ({ children }) => {
           setUserRole('admin');
           localStorage.setItem('currentUser', JSON.stringify(userData));
           return userData;
-        }
-
-        // Otherwise, look up the teacher information
-        const teachers = await getTeachers();
-        const teacher = teachers.find(t => t.email === email || t.username === username);
-
-        if (teacher) {
-          const userData = {
-            id: teacher.id,
-            email: teacher.email,
-            name: teacher.name,
-            username: teacher.username,
-            role: 'teacher',
-            lastLogin: new Date().getTime()
-          };
-          setCurrentUser(userData);
-          setUserRole('teacher');
-          localStorage.setItem('currentUser', JSON.stringify(userData));
-          return userData;
-        } else {
-          // If no teacher found but user is authenticated, log them out
-          await logoutUser();
-          throw new Error('User account exists but no teacher profile found');
-        }
-      } catch (authError) {
-        console.log("Firebase auth failed, checking teacher records", authError);
-
-        // If Firebase authentication fails, check if the teacher exists in Firestore
-        const teachers = await getTeachers();
-        const teacher = teachers.find(t =>
-          (t.email === email || t.username === username) && t.password === password
-        );
-
-        if (teacher) {
-          // Teacher found with matching password in Firestore
-          const userData = {
-            id: teacher.id,
-            email: teacher.email,
-            name: teacher.name,
-            username: teacher.username,
-            role: 'teacher',
-            lastLogin: new Date().getTime()
-          };
-          setCurrentUser(userData);
-          setUserRole('teacher');
-          localStorage.setItem('currentUser', JSON.stringify(userData));
-          return userData;
-        } else {
-          // No matching teacher found
-          throw new Error('Invalid username or password');
+        } catch (adminAuthError) {
+          console.error("Admin authentication failed:", adminAuthError);
+          throw new Error('Invalid admin credentials');
         }
       }
+      
+      // For non-admin users, try one more time with different approaches
+      console.log("No direct match found, trying alternative approaches");
+      
+      // Try to find teacher by just the username (ignoring password for debugging)
+      const teacherByUsernameOnly = teachers.find(t => 
+        (t.username && t.username.toLowerCase() === username.toLowerCase()) ||
+        (t.email && t.email.toLowerCase() === username.toLowerCase())
+      );
+      
+      if (teacherByUsernameOnly) {
+        console.log(`Found teacher by username/email, but password doesn't match. Teacher: ${teacherByUsernameOnly.name}`);
+        console.log(`Stored password: ${teacherByUsernameOnly.password}, Entered password: ${password}`);
+        // Password doesn't match
+        throw new Error('Invalid password');
+      } else {
+        console.log(`No teacher found with username/email: ${username}`);
+        throw new Error('Teacher not found with this username');
+      }
+      
     } catch (error) {
       console.error('Login error:', error);
       setAuthError(error.message);

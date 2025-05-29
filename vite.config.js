@@ -48,7 +48,7 @@ export default defineConfig({
             }
           },
           {
-            urlPattern: /\.(?:png|jpg|jpeg|svg|gif)$/,
+            urlPattern: /\.(?:png|jpg|jpeg|svg|gif)$/i,
             handler: 'CacheFirst',
             options: {
               cacheName: 'images-cache',
@@ -74,7 +74,11 @@ export default defineConfig({
         manualChunks: {
           'react-vendor': ['react', 'react-dom', 'react-router-dom'],
           'ui-vendor': ['@headlessui/react', '@heroicons/react', 'framer-motion'],
-          'firebase-vendor': ['firebase'],
+          'firebase-vendor': [
+            'firebase/app',
+            'firebase/auth',
+            'firebase/firestore'
+          ],
           'form-vendor': ['react-hook-form', 'zod', '@hookform/resolvers']
         }
       }

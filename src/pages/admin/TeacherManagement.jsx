@@ -145,7 +145,13 @@ function TeacherManagement() {
     try {
       // Create a safe username by handling any null values
       const teacherName = formData.name || '';
-      const username = teacherName.toLowerCase().replace(/\s+/g, '.');
+      // Create a more consistent username by removing spaces and special characters
+      const username = teacherName.toLowerCase()
+        .replace(/\s+/g, '.')
+        .replace(/[^\w.]/g, '')
+        .trim();
+      
+      console.log(`Generated username: ${username} from name: ${teacherName}`);
       
       // Safely convert monthlySalary to number
       let monthlySalary = 0;
@@ -175,6 +181,23 @@ function TeacherManagement() {
           throw new Error('Teacher ID is missing for edit operation');
         }
         
+        console.log(`Updating teacher with ID: ${currentEditId}`);
+        
+        // For updates, make sure to keep the existing password
+        // Get the existing teacher data to get the password
+        const existingTeachers = await getTeachers();
+        const existingTeacher = existingTeachers.find(t => t.id === currentEditId);
+        
+        if (existingTeacher && existingTeacher.password) {
+          console.log("Found existing password, preserving it in update");
+          teacherData.password = existingTeacher.password;
+        } else {
+          console.log("No existing password found, generating new one");
+          const newPassword = generatePassword();
+          teacherData.password = newPassword;
+          setGeneratedPassword(newPassword);
+        }
+        
         await updateTeacher(currentEditId, teacherData);
         
         setTeachers(prevTeachers => 
@@ -190,11 +213,19 @@ function TeacherManagement() {
         
         try {
           // First create a Firebase Authentication account for the teacher
-          const email = teacherData.email;
-          console.log("Creating Firebase Authentication account with email:", email);
+          const email = teacherData.email || `${username}@hazrisystem.com`;
+          console.log("Creating teacher with email:", email);
+          console.log("Generated password:", newPassword);
           
+          // Save the password in teacherData for Firestore
+          teacherData.password = newPassword;
+          
+          // Generate a unique ID that will be consistent
+          const teacherId = username + Date.now().toString();
+          console.log("Generated teacher ID:", teacherId);
+
+          // Try to create Firebase Authentication account
           try {
-            // Create the authentication account
             await createUserAccount(email, newPassword);
             console.log("Firebase Authentication account created successfully");
           } catch (authError) {
@@ -207,14 +238,7 @@ function TeacherManagement() {
             }
           }
           
-          // Generate a unique ID
-          const teacherId = username + Date.now().toString();
-          console.log("Generated teacher ID:", teacherId);
-          
-          // Add teacher to Firestore
-          console.log("Adding teacher to Firestore");
-          
-          // DIRECT FIRESTORE APPROACH - Use direct Firestore methods instead of our helper
+          // Now add teacher to Firestore with the same password
           try {
             // Make sure the teachers collection exists
             const teachersRef = collection(db, 'teachers');
@@ -224,26 +248,26 @@ function TeacherManagement() {
             
             // Use direct setDoc call to Firestore
             await setDoc(doc(db, 'teachers', teacherId), {
-            ...teacherData,
-              password: newPassword,
+              ...teacherData,
+              password: newPassword, // Ensure password is included
               createdAt: new Date().toISOString()
-          });
+            });
             
             console.log(`Teacher added with ID: ${teacherId} successfully`);
-          
-          const newTeacher = {
-            id: teacherId,
-            ...teacherData,
-            password: newPassword
-          };
-          
-          setTeachers(prevTeachers => [...prevTeachers, newTeacher]);
-          setGeneratedUsername(username);
-          
-          // Show the credentials
-            alert(`استاد کا اکاؤنٹ کامیابی سے بنا دیا گیا!\n\nصارف نام: ${username}\nای میل: ${teacherData.email}\nپاس ورڈ: ${newPassword}`);
             
-            // Close the modal only
+            const newTeacher = {
+              id: teacherId,
+              ...teacherData,
+              password: newPassword
+            };
+            
+            setTeachers(prevTeachers => [...prevTeachers, newTeacher]);
+            setGeneratedUsername(username);
+            
+            // Show the credentials
+            alert(`استاد کا اکاؤنٹ کامیابی سے بنا دیا گیا!\n\nصارف نام: ${username}\nای میل: ${email}\nپاس ورڈ: ${newPassword}`);
+            
+            // Close the modal
             setIsModalOpen(false);
             
             // Refresh the teachers list

@@ -113,96 +113,93 @@ function TeacherDashboard() {
       console.log("Starting to load teacher data...");
       setIsLoading(true);
       setLoadingError(null);
-
-      // Add a timeout to prevent infinite loading
-      const loadingTimeout = setTimeout(() => {
-        setIsLoading(false);
-        setLoadingError(t('components.error.generic'));
-        console.error('Loading timeout reached - forcing loading state to complete');
-        // Force redirect to login on timeout
-        logout().then(() => navigate('/login'));
-      }, 30000); // 30 seconds timeout
-
+      
       try {
-        if (!currentUser || !currentUser.id) {
-          console.error('No valid current user available:', currentUser);
+        // First, validate current user data exists
+        if (!currentUser) {
+          console.error('No current user found in context');
           setErrorState(true);
           throw new Error(t('components.error.noUserData', 'User information not available.'));
         }
-
-        // Debug current user info
+        
+        // Log current user info for debugging
         console.log("Current user data:", JSON.stringify(currentUser));
-        console.log("Fetching teacher data with ID:", currentUser.id);
-
-        try {
-          // Force login refresh
-          const storedUser = JSON.parse(localStorage.getItem('currentUser'));
-          if (storedUser) {
-            console.log("Stored user from localStorage:", JSON.stringify(storedUser));
-          }
-        } catch (e) {
-          console.error("Error reading localStorage:", e);
+        
+        // Check if we have an ID
+        if (!currentUser.id) {
+          console.error('Missing ID in current user data');
+          setErrorState(true);
+          throw new Error(t('components.error.missingID', 'User ID not available. Please log in again.'));
         }
-
-        // Try to list all teachers first
-        try {
+        
+        console.log("Attempting to fetch teacher data with ID:", currentUser.id);
+        
+        // Try to find the teacher directly using their ID
+        let teacher = await getTeacher(currentUser.id);
+        
+        // If teacher not found by ID, try to find by username
+        if (!teacher && currentUser.username) {
+          console.log("Teacher not found by ID, trying to find by username:", currentUser.username);
+          
+          // Get all teachers and find matching one by username
           const allTeachers = await getTeachers();
-          console.log("Found teachers in database:",
-            allTeachers.map(t => ({ id: t.id, name: t.name, username: t.username })));
-
-          // Check if current teacher's ID exists in the list
-          const teacherExists = allTeachers.some(t => t.id === currentUser.id);
-          console.log(`Current teacher ID ${currentUser.id} exists in teachers list: ${teacherExists}`);
-
-          // Try to find teacher by username if ID doesn't match
-          if (!teacherExists) {
-            const matchByUsername = allTeachers.find(t => t.username === currentUser.username);
-            if (matchByUsername) {
-              console.log("Found teacher by username instead of ID:", matchByUsername.id);
-              // Update localStorage with correct ID
-              const updatedUser = {...currentUser, id: matchByUsername.id};
-              localStorage.setItem('currentUser', JSON.stringify(updatedUser));
-              window.location.reload(); // Force reload to use new ID
-              return;
-            }
+          const matchedTeacher = allTeachers.find(t => 
+            t.username?.toLowerCase() === currentUser.username?.toLowerCase()
+          );
+          
+          if (matchedTeacher) {
+            console.log("Found teacher by username instead:", matchedTeacher.id);
+            teacher = matchedTeacher;
+            
+            // Update localStorage with correct ID for future use
+            const updatedUser = {...currentUser, id: matchedTeacher.id};
+            localStorage.setItem('currentUser', JSON.stringify(updatedUser));
+            console.log("Updated user in localStorage with correct ID");
           }
-        } catch (listError) {
-          console.error("Error listing teachers:", listError);
         }
-
-        // Load teacher data
-        const teacher = await getTeacher(currentUser.id);
-
+        
+        // If still no teacher found
         if (!teacher) {
-          console.error('Teacher data not found for ID:', currentUser.id);
+          console.error(`Teacher data not found for ID: ${currentUser.id}`);
           setErrorState(true);
           throw new Error(t('components.error.teacherNotFound', 'Teacher information not found.'));
         }
-
+        
         console.log("Teacher data loaded successfully:", teacher);
         setTeacherData(teacher);
-
-        // Load attendance records with reliable method
-        console.log("Fetching attendance records for teacher ID:", currentUser.id);
-        const records = await getTeacherAttendance(currentUser.id);
-
-        if (Array.isArray(records)) {
-          console.log(`Successfully loaded ${records.length} attendance records`);
-          // Sort records by date (newest first)
-          const sortedRecords = [...records].sort((a, b) => {
-            return new Date(b.date) - new Date(a.date);
-          });
-          setAttendanceRecords(sortedRecords);
-
-          // Check if there's already a record for today
-          const todayRec = sortedRecords.find(r => r.date === today);
-          if (todayRec) {
-            setTodayRecord(todayRec);
-            setHasCheckedIn(!!todayRec.checkIn);
-            setHasCheckedOut(!!todayRec.checkOut);
+        
+        // Now that we have the teacher, load attendance records
+        console.log("Fetching attendance records for teacher ID:", teacher.id);
+        
+        try {
+          // Try first with getTeacherAttendance
+          const records = await getTeacherAttendance(teacher.id);
+          
+          if (Array.isArray(records) && records.length > 0) {
+            console.log(`Successfully loaded ${records.length} attendance records`);
+            
+            // Sort records by date (newest first)
+            const sortedRecords = [...records].sort((a, b) => {
+              return new Date(b.date) - new Date(a.date);
+            });
+            
+            setAttendanceRecords(sortedRecords);
+            
+            // Check if there's already a record for today
+            const todayRec = sortedRecords.find(r => r.date === today);
+            if (todayRec) {
+              setTodayRecord(todayRec);
+              setHasCheckedIn(!!todayRec.checkIn);
+              setHasCheckedOut(!!todayRec.checkOut);
+            }
+          } else {
+            // If no records found or records is not an array, set empty array
+            console.log("No attendance records found or invalid records format:", records);
+            setAttendanceRecords([]);
           }
-        } else {
-          console.error('Received invalid attendance records:', records);
+        } catch (recordsError) {
+          console.error("Error fetching attendance records:", recordsError);
+          // Don't fail the whole page load if attendance records can't be fetched
           setAttendanceRecords([]);
         }
       } catch (error) {
@@ -210,13 +207,13 @@ function TeacherDashboard() {
         setErrorState(true);
         setLoadingError(error.message || t('components.error.generic'));
       } finally {
-        clearTimeout(loadingTimeout); // Clear the timeout
+        // Always make sure loading state is cleared
         setIsLoading(false);
       }
     };
 
     loadTeacherData();
-  }, [currentUser, today, refreshKey, t, logout, navigate]);
+  }, [currentUser, today, refreshKey, t, navigate, logout]);
 
   // Update time every minute
   useEffect(() => {
@@ -407,11 +404,34 @@ function TeacherDashboard() {
             <i className="fas fa-exclamation-triangle"></i>
             <h2>{t('components.error.title')}</h2>
             <p>{loadingError || t('components.error.generic')}</p>
+            
+            {/* Debug info - only visible in development */}
+            {process.env.NODE_ENV === 'development' && (
+              <div className="error-debug">
+                <h3>Debug Info:</h3>
+                <pre>{JSON.stringify({
+                  currentUser: currentUser ? {
+                    id: currentUser.id,
+                    username: currentUser.username,
+                    name: currentUser.name
+                  } : null,
+                  errorMessage: loadingError
+                }, null, 2)}</pre>
+              </div>
+            )}
+            
             <div className="error-actions">
-              <button onClick={() => window.location.reload()} className="refresh-button">
+              <button onClick={() => {
+                setErrorState(false);
+                setRefreshKey(oldKey => oldKey + 1);
+                setIsLoading(true);
+              }} className="refresh-button">
                 <i className="fas fa-sync"></i> {t('components.error.retry')}
               </button>
-              <button onClick={handleLogout} className="logout-button error-logout">
+              <button onClick={() => {
+                localStorage.removeItem('currentUser'); // Clear user data before logout
+                handleLogout();
+              }} className="logout-button error-logout">
                 <i className="fas fa-sign-out-alt"></i> {t('components.error.relogin')}
               </button>
             </div>
@@ -571,34 +591,46 @@ function TeacherDashboard() {
         </div>
       </header>
 
-      {/* Schedule Info Card */}
-      <div className="schedule-card">
-        <div className="card-header">
-          <h3>{t('pages.teacherDashboard.workingHours')}</h3>
-        </div>
-        <div className="schedule-info">
-          <div className="time-slot">
-            <i className="fas fa-sign-in-alt"></i>
-            <span>{t('pages.teacherDashboard.startTime')}: {teacherData?.workingHours?.startTime || '08:00'}</span>
+      {!errorState && (
+        <>
+          {/* Schedule Info Card */}
+          <div className="schedule-card">
+            <div className="card-header">
+              <h3>{t('pages.teacherDashboard.workingHours')}</h3>
+            </div>
+            <div className="schedule-info">
+              <div className="time-slot">
+                <i className="fas fa-sign-in-alt"></i>
+                <span>
+                  {t('pages.teacherDashboard.startTime')}: {teacherData?.workingHours?.startTime || '08:00'}
+                </span>
+              </div>
+              <div className="time-slot">
+                <i className="fas fa-sign-out-alt"></i>
+                <span>
+                  {t('pages.teacherDashboard.endTime')}: {teacherData?.workingHours?.endTime || '16:00'}
+                </span>
+              </div>
+              <div className="time-slot">
+                <i className="fas fa-money-bill-wave"></i>
+                <span>
+                  {t('pages.teacherDashboard.salary')}: {teacherData?.monthlySalary 
+                    ? `Rs. ${teacherData.monthlySalary.toLocaleString()}`
+                    : 'Rs. 0'}
+                </span>
+              </div>
+            </div>
           </div>
-          <div className="time-slot">
-            <i className="fas fa-sign-out-alt"></i>
-            <span>{t('pages.teacherDashboard.endTime')}: {teacherData?.workingHours?.endTime || '16:00'}</span>
+          
+          {/* Current Time and Date */}
+          <div className="current-time-card">
+            <div className="time-display">
+              <h2>{formattedTime}</h2>
+              <p>{formattedDate}</p>
+            </div>
           </div>
-          <div className="time-slot">
-            <i className="fas fa-money-bill-wave"></i>
-            <span>{t('pages.teacherDashboard.salary')}: Rs. {teacherData?.monthlySalary?.toLocaleString() || '0'}</span>
-          </div>
-        </div>
-      </div>
-
-      {/* Current Time and Date */}
-      <div className="current-time-card">
-        <div className="time-display">
-          <h2>{formattedTime}</h2>
-          <p>{formattedDate}</p>
-        </div>
-      </div>
+        </>
+      )}
 
       {/* Recent Attendance Records */}
       <div className="recent-records">

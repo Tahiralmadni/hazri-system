@@ -132,7 +132,29 @@ export const updateTeacher = async (teacherId, teacherData) => {
 
 export const deleteTeacher = async (teacherId) => {
   try {
+    console.log(`Deleting teacher with ID: ${teacherId} and all associated attendance records`);
+    
+    // First, delete all attendance records for this teacher
+    const attendanceRef = collection(db, 'attendance');
+    const q = query(attendanceRef, where('teacherId', '==', teacherId));
+    const querySnapshot = await getDocs(q);
+    
+    // Delete each attendance record in a batch
+    const deletePromises = [];
+    querySnapshot.forEach((docSnapshot) => {
+      deletePromises.push(deleteDoc(doc(db, 'attendance', docSnapshot.id)));
+    });
+    
+    // Wait for all attendance records to be deleted
+    if (deletePromises.length > 0) {
+      await Promise.all(deletePromises);
+      console.log(`Deleted ${deletePromises.length} attendance records for teacher ${teacherId}`);
+    }
+    
+    // Now delete the teacher document
     await deleteDoc(doc(db, 'teachers', teacherId));
+    console.log(`Teacher ${teacherId} deleted successfully`);
+    
     return true;
   } catch (error) {
     console.error('Error deleting teacher: ', error);

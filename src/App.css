@@ -20,10 +20,10 @@
   --primary-color: #2ecc71; /* Keep primary color the same */
   --primary-light: #1e6f43;
   --primary-dark: #3ee888;
-  --text-color: #e4e6e8;
+  --text-color: #ffffff;
   --bg-color: #121212;
   --card-bg: #1e1e1e;
-  --shadow-light: rgba(0, 0, 0, 0.8);
+  --shadow-light: rgba(22, 19, 19, 0.8);
   --shadow-dark: rgba(0, 0, 0, 0.3);
   --border-radius: 12px;
   --danger-color: #e74c3c;
@@ -140,7 +140,7 @@ body {
   right: 0;
   display: flex;
   align-items: center;
-  padding: 0.75rem 2rem;
+  padding: 0.5rem 1.5rem;
   box-shadow: 0 2px 10px var(--shadow-dark);
   z-index: 1000;
   justify-content: space-between;
@@ -149,34 +149,35 @@ body {
 .admin-nav-brand {
   display: flex;
   align-items: center;
-  gap: 0.75rem;
+  gap: 0.5rem;
   font-weight: 700;
   color: var(--primary-color);
-  font-size: 1.2rem;
+  font-size: 1rem;
 }
 
 .admin-nav-brand i {
-  font-size: 1.5rem;
+  font-size: 1.2rem;
 }
 
 .admin-nav-menu {
   display: flex;
-  gap: 1rem;
+  gap: 0.5rem;
 }
 
 .admin-nav-link {
   color: var(--text-color);
   text-decoration: none;
-  padding: 0.5rem 1rem;
+  padding: 0.4rem 0.75rem;
   border-radius: var(--border-radius);
   transition: all 0.2s ease;
   display: flex;
   align-items: center;
   gap: 0.5rem;
+  font-size: 0.9rem;
 }
 
 .admin-nav-link i {
-  font-size: 1rem;
+  font-size: 0.9rem;
   color: var(--primary-color);
 }
 
@@ -2639,4 +2640,300 @@ td:last-child:not(:empty) {
 .error-logout:hover {
   background: #e74c3c;
   color: white;
+}
+
+/* Settings Page Styles */
+.settings-page {
+  width: 100%;
+  max-width: 1000px;
+  margin: 0 auto;
+  padding: 20px;
+}
+
+.settings-header {
+  margin-bottom: 30px;
+  text-align: center;
+}
+
+.settings-header h1 {
+  font-size: 28px;
+  color: var(--primary-color);
+  margin-bottom: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+}
+
+.settings-header p {
+  color: var(--text-color);
+  opacity: 0.8;
+}
+
+.settings-section {
+  margin-bottom: 40px;
+}
+
+.settings-section h2 {
+  font-size: 20px;
+  margin-bottom: 15px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--primary-light);
+  color: var(--text-color);
+}
+
+.settings-card {
+  background-color: var(--card-bg);
+  border-radius: var(--border-radius);
+  box-shadow: 0 2px 10px var(--shadow-dark);
+  padding: 20px;
+  margin-bottom: 20px;
+}
+
+.settings-item {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: center;
+  padding: 15px 0;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+}
+
+.dark .settings-item {
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.settings-item:last-child {
+  border-bottom: none;
+}
+
+.settings-item-label {
+  flex: 1;
+  min-width: 200px;
+  padding-right: 20px;
+}
+
+.settings-item-label h3 {
+  font-size: 16px;
+  margin-bottom: 5px;
+  color: var(--text-color);
+}
+
+.settings-item-label p {
+  font-size: 14px;
+  color: var(--text-color);
+  opacity: 0.7;
+}
+
+.settings-item-control {
+  display: flex;
+  align-items: center;
+}
+
+.settings-button {
+  background-color: var(--card-bg);
+  border: 1px solid var(--primary-color);
+  color: var(--primary-color);
+  padding: 8px 15px;
+  border-radius: 30px;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.settings-button:hover {
+  background-color: var(--primary-light);
+  color: var(--card-bg);
+}
+
+.settings-button.active {
+  background-color: var(--primary-color);
+  color: white;
+}
+
+.settings-button.theme-button {
+  min-width: 120px;
+  justify-content: center;
+}
+
+.language-buttons {
+  display: flex;
+  gap: 10px;
+}
+
+.profile-info-item {
+  display: flex;
+  justify-content: space-between;
+  padding: 10px 0;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+}
+
+.dark .profile-info-item {
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.profile-info-item:last-child {
+  border-bottom: none;
+}
+
+.profile-info-label {
+  font-weight: bold;
+  color: var(--text-color);
+}
+
+.profile-info-value {
+  color: var(--text-color);
+}
+
+.profile-role {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.settings-item-info {
+  width: 100%;
+  margin-top: 15px;
+}
+
+@media (max-width: 768px) {
+  .settings-item {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  
+  .settings-item-label {
+    margin-bottom: 15px;
+    padding-right: 0;
+  }
+  
+  .settings-item-control {
+    width: 100%;
+  }
+  
+  .settings-button {
+    flex: 1;
+    justify-content: center;
+  }
+}
+
+/* Error debug styles */
+.error-debug {
+  margin: 15px 0;
+  padding: 10px;
+  background-color: #f8f9fa;
+  border-radius: 4px;
+  border-left: 4px solid #dc3545;
+  text-align: left;
+  overflow: hidden;
+}
+
+.dark .error-debug {
+  background-color: #343a40;
+  border-left-color: #f06a73;
+}
+
+.error-debug h3 {
+  margin-top: 0;
+  margin-bottom: 10px;
+  color: #dc3545;
+  font-size: 1rem;
+}
+
+.dark .error-debug h3 {
+  color: #f06a73;
+}
+
+.error-debug pre {
+  font-family: monospace;
+  font-size: 0.85rem;
+  white-space: pre-wrap;
+  background-color: #f1f1f1;
+  padding: 10px;
+  border-radius: 4px;
+  max-height: 200px;
+  overflow-y: auto;
+  margin: 0;
+}
+
+.dark .error-debug pre {
+  background-color: #1a1a1a;
+  color: #e0e0e0;
+}
+
+/* Debug Mode Styles */
+.debug-section {
+  margin-top: 20px;
+  border-top: 1px dashed #ddd;
+  padding-top: 10px;
+}
+
+.debug-button {
+  background: #f1f1f1;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  padding: 5px 10px;
+  color: #666;
+  font-size: 0.8rem;
+  cursor: pointer;
+  display: inline-block;
+  margin: 10px 0;
+}
+
+.debug-button.active {
+  background: #4a90e2;
+  color: white;
+  border-color: #2a6fc7;
+}
+
+.debug-info {
+  background: #f8f9fa;
+  padding: 10px;
+  border-radius: 4px;
+  border: 1px solid #ddd;
+  max-height: 300px;
+  overflow-y: auto;
+  margin-top: 10px;
+  text-align: left;
+  direction: ltr;
+}
+
+.debug-info h4 {
+  margin-top: 0;
+  margin-bottom: 10px;
+  color: #555;
+  font-size: 0.9rem;
+}
+
+.debug-info pre {
+  font-family: monospace;
+  font-size: 0.7rem;
+  white-space: pre-wrap;
+  background-color: #edf2f7;
+  padding: 5px;
+  border-radius: 3px;
+}
+
+.dark .debug-info {
+  background: #2d3748;
+  border-color: #4a5568;
+}
+
+.dark .debug-button {
+  background: #2d3748;
+  border-color: #4a5568;
+  color: #cbd5e0;
+}
+
+.dark .debug-button.active {
+  background: #4299e1;
+  color: white;
+}
+
+.dark .debug-info pre {
+  background-color: #1a202c;
+  color: #e2e8f0;
 }

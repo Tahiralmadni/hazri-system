@@ -1,9 +1,9 @@
 /** @type {import('tailwindcss').Config} */
 export default {
-  darkMode: 'class', // Use class for dark mode (controlled by JS)
+  darkMode: 'class', // dark mode via class
   content: [
-    "./index.html",
-    "./src/**/*.{js,ts,jsx,tsx}",
+    './index.html',
+    './src/**/*.{js,ts,jsx,tsx}',
   ],
   theme: {
     extend: {
@@ -12,6 +12,14 @@ export default {
         secondary: 'rgb(var(--secondary) / <alpha-value>)',
         background: 'rgb(var(--background) / <alpha-value>)',
         foreground: 'rgb(var(--foreground) / <alpha-value>)',
+        border: 'rgb(var(--border) / <alpha-value>)',
+        'border-border': 'rgb(var(--border) / <alpha-value>)',
+      },
+      backgroundColor: {
+        background: 'rgb(var(--background) / <alpha-value>)',
+      },
+      textColor: {
+        'foreground': 'rgb(var(--foreground) / <alpha-value>)',
       },
     },
   },
@@ -19,5 +27,4 @@ export default {
     require('@tailwindcss/forms'),
     require('tailwind-scrollbar'),
   ],
-} 
-  
+}

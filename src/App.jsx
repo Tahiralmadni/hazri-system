@@ -49,7 +49,7 @@ const AnimatedRoutes = () => {
   return (
     <AnimatePresence mode="wait">
       <Routes location={location} key={location.pathname}>
-        {/* Public Routes */}
+          {/* Public Routes */}
         <Route path="/login" element={
           <PageTransition>
             <Login />
@@ -61,56 +61,56 @@ const AnimatedRoutes = () => {
           </PageTransition>
         } />
 
-        {/* Protected Teacher Routes */}
-        <Route path="/teacher" element={
-          <ProtectedRoute requiredRoles={['teacher']}>
+          {/* Protected Teacher Routes */}
+          <Route path="/teacher" element={
+            <ProtectedRoute requiredRoles={['teacher']}>
             <PageTransition>
               <TeacherDashboard />
             </PageTransition>
-          </ProtectedRoute>
-        } />
-        <Route path="/teacher/attendance" element={
-          <ProtectedRoute requiredRoles={['teacher']}>
+            </ProtectedRoute>
+          } />
+          <Route path="/teacher/attendance" element={
+            <ProtectedRoute requiredRoles={['teacher']}>
             <PageTransition>
               <TeacherAttendance />
             </PageTransition>
-          </ProtectedRoute>
-        } />
+            </ProtectedRoute>
+          } />
 
-        {/* Protected Admin Routes */}
-        <Route path="/admin" element={
-          <ProtectedRoute requiredRoles={['admin']}>
+          {/* Protected Admin Routes */}
+          <Route path="/admin" element={
+            <ProtectedRoute requiredRoles={['admin']}>
             <PageTransition>
               <AdminDashboard />
             </PageTransition>
-          </ProtectedRoute>
-        } />
-        <Route path="/admin/teachers" element={
-          <ProtectedRoute requiredRoles={['admin']}>
+            </ProtectedRoute>
+          } />
+          <Route path="/admin/teachers" element={
+            <ProtectedRoute requiredRoles={['admin']}>
             <PageTransition>
               <TeacherManagement />
             </PageTransition>
-          </ProtectedRoute>
-        } />
-        <Route path="/admin/teacher/:id" element={
-          <ProtectedRoute requiredRoles={['admin']}>
+            </ProtectedRoute>
+          } />
+          <Route path="/admin/teacher/:id" element={
+            <ProtectedRoute requiredRoles={['admin']}>
             <PageTransition>
               <TeacherProfile />
             </PageTransition>
-          </ProtectedRoute>
-        } />
-        <Route path="/admin/attendance" element={
-          <ProtectedRoute requiredRoles={['admin']}>
+            </ProtectedRoute>
+          } />
+          <Route path="/admin/attendance" element={
+            <ProtectedRoute requiredRoles={['admin']}>
             <PageTransition>
               <AttendanceRecords />
             </PageTransition>
-          </ProtectedRoute>
-        } />
+            </ProtectedRoute>
+          } />
 
-        {/* Redirect to login if not authenticated */}
-        <Route path="/" element={<Navigate to="/login" />} />
-        <Route path="*" element={<Navigate to="/login" />} />
-      </Routes>
+          {/* Redirect to login if not authenticated */}
+          <Route path="/" element={<Navigate to="/login" />} />
+          <Route path="*" element={<Navigate to="/login" />} />
+        </Routes>
     </AnimatePresence>
   );
 };

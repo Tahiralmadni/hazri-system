@@ -33,7 +33,6 @@
       "subtitle": "Set up your admin account for Hazri System",
       "name": "Name",
       "username": "Username",
-      "password": "Password",
       "confirm": "Confirm Password",
       "btn_create": "Create Account",
       "success": "Admin account created successfully.",
@@ -189,6 +188,24 @@
       "teacherExists": "Teacher Exists",
       "checkConsole": "Check browser console for detailed logs",
       "debugError": "Debug error:"
+    },
+    "settings": {
+      "title": "Settings - Hazri System",
+      "subtitle": "Customize your experience and manage account settings",
+      "appearance": "Appearance",
+      "theme": "Theme",
+      "themeDescription": "Toggle between light and dark mode",
+      "language": "Language",
+      "languageDescription": "Choose your preferred language",
+      "account": "Account",
+      "profile": "Profile Information",
+      "profileDescription": "View your account details",
+      "name": "Name",
+      "email": "Email",
+      "role": "Role",
+      "adminRole": "Administrator",
+      "teacherRole": "Teacher",
+      "languageChanged": "Language changed to {{language}}"
     }
   },
   "components": {
@@ -199,7 +216,8 @@
       "debug": "Data Debug",
       "welcome": "Welcome",
       "logout": "Logout",
-      "teacher": "Teacher"
+      "teacher": "Teacher",
+      "settings": "Settings"
     },
     "themeToggle": {
       "light": "Light",
