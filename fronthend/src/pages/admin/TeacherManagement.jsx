@@ -89,7 +89,8 @@ function TeacherManagement() {
   const [isLoading, setIsLoading] = useState(false);
   const [formData, setFormData] = useState({
     name: '',
-    designation: 'استاد',
+    designation: 'قاعدہ',
+    jamiaType: '',
     grNumber: '',
     monthlySalary: 0,
     startTime: '08:00',
@@ -106,6 +107,8 @@ function TeacherManagement() {
   const [selectAll, setSelectAll] = useState(false);
   // Add state for loading GR number
   const [isGeneratingGrNumber, setIsGeneratingGrNumber] = useState(false);
+  // Add state to track if any teacher has Jamia designation
+  const [hasJamiaTeachers, setHasJamiaTeachers] = useState(false);
   
   const { currentUser, logout } = useAuth();
   const navigate = useNavigate();
@@ -143,9 +146,13 @@ function TeacherManagement() {
       const processedTeachers = teachersData.map(teacher => ({
         ...teacher,
         monthlySalary: teacher.monthlySalary ? Number(teacher.monthlySalary) : 0,
-        designation: teacher.designation || 'استاد',
+        designation: teacher.designation || 'قاعدہ',
         workingHours: teacher.workingHours || { startTime: '08:00', endTime: '16:00' }
       }));
+      
+      // Check if any teacher has Jamia designation
+      const jamiaExists = processedTeachers.some(teacher => teacher.designation === 'جامعہ');
+      setHasJamiaTeachers(jamiaExists);
       
       setTeachers(processedTeachers);
       console.log("Teachers state updated with:", processedTeachers);
@@ -179,7 +186,7 @@ function TeacherManagement() {
         
         // Check for missing designation
         if (!teacher.designation) {
-          updates.designation = 'استاد';
+          updates.designation = 'قاعدہ';
           needsUpdate = true;
         }
         
@@ -276,7 +283,8 @@ function TeacherManagement() {
     // Initialize with default values
     setFormData({
       name: '',
-      designation: 'استاد',
+      designation: 'قاعدہ',
+      jamiaType: '',
       grNumber: '',
       monthlySalary: 0,
       contactNumber: '',
@@ -309,7 +317,8 @@ function TeacherManagement() {
     setCurrentEditId(teacher._id);
     setFormData({
       name: teacher.name || '',
-      designation: teacher.designation || 'استاد',
+      designation: teacher.designation || 'قاعدہ',
+      jamiaType: teacher.jamiaType || '',
       grNumber: teacher.grNumber || '',
       monthlySalary: teacher.monthlySalary || 0,
       startTime: teacher.workingHours?.startTime || '08:00',
@@ -385,7 +394,7 @@ function TeacherManagement() {
         name: teacherName,
         username: username,
         grNumber: formData.grNumber || '',
-        designation: formData.designation || 'استاد',
+        designation: formData.designation || 'قاعدہ',
         monthlySalary: monthlySalary,
         joiningDate: new Date().toLocaleDateString('en-US', {year: 'numeric', month: 'short', day: 'numeric'}),
         contactNumber: formData.contactNumber || '',
@@ -396,6 +405,11 @@ function TeacherManagement() {
           endTime: formData.endTime || '16:00'
         }
       };
+      
+      // Add Jamia type if applicable
+      if (formData.designation === 'جامعہ' && formData.jamiaType) {
+        teacherData.jamiaType = formData.jamiaType;
+      }
       
       console.log("Form data before submission:", {
         salary: monthlySalary,
@@ -699,13 +713,30 @@ function TeacherManagement() {
                     required
                     className="form-control"
                   >
-                    <option value="سینئر استاد">سینئر استاد</option>
-                    <option value="جونیئر استاد">جونیئر استاد</option>
-                    <option value="لیکچرار">لیکچرار</option>
-                    <option value="اسسٹنٹ استاد">اسسٹنٹ استاد</option>
-                    <option value="ٹیوٹر">ٹیوٹر</option>
+                    <option value="قاعدہ">قاعدہ</option>
+                    <option value="ناظرہ">ناظرہ</option>
+                    <option value="حفظ">حفظ</option>
+                    <option value="جامعہ">جامعہ</option>
                   </select>
                 </div>
+                
+                {formData.designation === 'جامعہ' && (
+                  <div className="form-group">
+                    <label htmlFor="jamiaType">جامعہ کی قسم:</label>
+                    <select
+                      id="jamiaType"
+                      name="jamiaType"
+                      value={formData.jamiaType}
+                      onChange={handleInputChange}
+                      required={formData.designation === 'جامعہ'}
+                      className="form-control"
+                    >
+                      <option value="">انتخاب کریں</option>
+                      <option value="عالم">عالم</option>
+                      <option value="مفتی">مفتی</option>
+                    </select>
+                  </div>
+                )}
                 
                 <div className="form-group">
                   <label htmlFor="monthlySalary">{t('pages.teacherManagement.form.salary')}:</label>
@@ -841,6 +872,7 @@ function TeacherManagement() {
               <th>GR Number</th>
               <th>{t('pages.teacherManagement.table.username')}</th>
               <th>{t('pages.teacherManagement.table.designation')}</th>
+              {hasJamiaTeachers && <th>جامعہ کی قسم</th>}
               <th>{t('pages.teacherManagement.table.salary')}</th>
               <th>{t('pages.teacherManagement.table.workingHours')}</th>
               <th>{t('pages.teacherManagement.table.joinDate')}</th>
@@ -865,6 +897,7 @@ function TeacherManagement() {
                   <td>{teacher?.grNumber || 'Not Assigned'}</td>
                   <td>{teacher?.username || '-'}</td>
                   <td>{teacher?.designation || '-'}</td>
+                  {hasJamiaTeachers && <td>{teacher?.designation === 'جامعہ' ? teacher?.jamiaType || '-' : '-'}</td>}
                   <td>Rs. {(teacher?.monthlySalary !== undefined && teacher?.monthlySalary !== null) ? 
                     Number(teacher.monthlySalary).toLocaleString() : '0'}</td>
                   <td>

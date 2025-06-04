@@ -59,6 +59,7 @@ exports.addTeacher = async (req, res) => {
       joiningDate,
       monthlySalary,
       designation,
+      jamiaType,
       workingHours
     } = req.body;
     
@@ -113,8 +114,14 @@ exports.addTeacher = async (req, res) => {
     console.log(`Processing salary: original=${monthlySalary}, final=${finalSalary}, type=${typeof finalSalary}`);
     
     // Final designation
-    const finalDesignation = designation || 'استاد';
+    const finalDesignation = designation || 'قاعدہ';
     console.log(`Processing designation: original=${designation}, final=${finalDesignation}`);
+    
+    // Final jamiaType - only apply if designation is 'جامعہ'
+    let finalJamiaType = '';
+    if (finalDesignation === 'جامعہ' && jamiaType) {
+      finalJamiaType = jamiaType;
+    }
     
     // Create new teacher
     const teacher = new Teacher({
@@ -130,6 +137,7 @@ exports.addTeacher = async (req, res) => {
       active: true,
       monthlySalary: finalSalary,
       designation: finalDesignation,
+      jamiaType: finalJamiaType,
       workingHours: workingHours || {
         startTime: '08:00', 
         endTime: '16:00'
@@ -173,7 +181,8 @@ exports.updateTeacher = async (req, res) => {
       joiningDate, 
       monthlySalary, 
       workingHours, 
-      designation 
+      designation,
+      jamiaType 
     } = req.body;
     
     const teacherId = req.params.id;
@@ -254,7 +263,14 @@ exports.updateTeacher = async (req, res) => {
     if (designation) {
       teacher.designation = designation;
     } else if (!teacher.designation) {
-      teacher.designation = 'استاد';
+      teacher.designation = 'قاعدہ';
+    }
+    
+    // Handle jamiaType - only set if designation is 'جامعہ'
+    if (teacher.designation === 'جامعہ') {
+      teacher.jamiaType = jamiaType || '';
+    } else {
+      teacher.jamiaType = '';
     }
     
     // Handle working hours
@@ -270,7 +286,8 @@ exports.updateTeacher = async (req, res) => {
     console.log("Saving updated teacher with:", {
       monthlySalary: teacher.monthlySalary,
       contactNumber: teacher.contactNumber,
-      designation: teacher.designation
+      designation: teacher.designation,
+      jamiaType: teacher.jamiaType
     });
     
     await teacher.save();

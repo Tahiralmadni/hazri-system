@@ -65,7 +65,13 @@ const TeacherSchema = new mongoose.Schema({
   },
   designation: {
     type: String,
-    default: 'استاد',
+    default: 'قاعدہ',
+    trim: true
+  },
+  jamiaType: {
+    type: String,
+    enum: ['عالم', 'مفتی', ''],
+    default: '',
     trim: true
   },
   workingHours: {

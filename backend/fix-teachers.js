@@ -27,7 +27,11 @@ const TeacherSchema = new mongoose.Schema({
   },
   designation: {
     type: String,
-    default: 'استاد'
+    default: 'قاعدہ'
+  },
+  jamiaType: {
+    type: String,
+    default: ''
   },
   workingHours: {
     startTime: {
