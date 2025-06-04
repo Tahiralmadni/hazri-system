@@ -6,6 +6,7 @@ import NavigationProgress from './components/ui/NavigationProgress';
 import { AnimatePresence } from 'framer-motion';
 import { PageTransition } from './components/ui/PageTransition';
 import { Toast } from './components/ui/Toast';
+import MobileNavbarWrapper from './components/MobileNavbarWrapper';
 
 // Lazy loaded pages
 const Login = lazy(() => import('./pages/Login'));
@@ -123,6 +124,7 @@ function App() {
         <Toast />
         <Suspense fallback={<PageLoader />}>
           <AnimatedRoutes />
+          <MobileNavbarWrapper />
         </Suspense>
       </AuthProvider>
     </Router>

@@ -262,9 +262,9 @@ function TeacherAttendance() {
               {filteredRecords.length > 0 ? (
                 filteredRecords.map((record, index) => (
                   <tr key={index}>
-                    <td>{record.date}</td>
-                    <td>{record.day}</td>
-                    <td>
+                    <td data-label="تاریخ">{record.date}</td>
+                    <td data-label="دن">{record.day}</td>
+                    <td data-label="حالت">
                       {record.status === 'present' ? (
                         <span className="status-badge present"><i className="fas fa-check-circle"></i> حاضر</span>
                       ) : record.status === 'absent' ? (
@@ -273,16 +273,16 @@ function TeacherAttendance() {
                         <span className="status-badge leave"><i className="fas fa-calendar-minus"></i> چھٹی</span>
                       )}
                     </td>
-                    <td>{formatTime(record.checkIn)}</td>
-                    <td>{formatTime(record.checkOut)}</td>
-                    <td>{record.workHours?.toFixed(2) || '0.00'}</td>
-                    <td>
+                    <td data-label="چیک ان">{formatTime(record.checkIn)}</td>
+                    <td data-label="چیک آؤٹ">{formatTime(record.checkOut)}</td>
+                    <td data-label="کام کے گھنٹے">{record.workHours?.toFixed(2) || '0.00'}</td>
+                    <td data-label="تفصیلات">
                       <div className="status-flags">
                         {record.isLate && <span className="status-tag late">دیر سے</span>}
                         {record.isShortDay && <span className="status-tag short">جلدی گئے</span>}
                       </div>
                     </td>
-                    <td>{record.notes || '-'}</td>
+                    <td data-label="نوٹس">{record.notes || '-'}</td>
                   </tr>
                 ))
               ) : (

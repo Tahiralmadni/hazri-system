@@ -721,9 +721,9 @@ function TeacherDashboard() {
               {attendanceRecords && attendanceRecords.length > 0 ? (
                 attendanceRecords.map((record, index) => (
                   <tr key={index}>
-                    <td>{record.date}</td>
-                    <td>{record.day || '-'}</td>
-                    <td>
+                    <td data-label={t('pages.attendanceRecords.table.date')}>{record.date}</td>
+                    <td data-label={t('pages.teacherDashboard.day', 'Day')}>{record.day || '-'}</td>
+                    <td data-label={t('pages.attendanceRecords.table.status')}>
                       {record.status === 'present' ? (
                         <span className="status-badge present">
                           <i className="fas fa-check-circle"></i> {t('components.attendanceStatus.present')}
@@ -738,10 +738,10 @@ function TeacherDashboard() {
                         </span>
                       )}
                     </td>
-                    <td>{(record.timeIn || record.checkIn) ? formatTime(record.timeIn || record.checkIn) : '-'}</td>
-                    <td>{(record.timeOut || record.checkOut) ? formatTime(record.timeOut || record.checkOut) : '-'}</td>
-                    <td>{record.workHours || '0.00'}</td>
-                    <td>
+                    <td data-label={t('pages.attendanceRecords.table.checkIn')}>{(record.timeIn || record.checkIn) ? formatTime(record.timeIn || record.checkIn) : '-'}</td>
+                    <td data-label={t('pages.attendanceRecords.table.checkOut')}>{(record.timeOut || record.checkOut) ? formatTime(record.timeOut || record.checkOut) : '-'}</td>
+                    <td data-label={t('pages.attendanceRecords.table.workingHours')}>{record.workHours || '0.00'}</td>
+                    <td data-label={t('pages.attendanceRecords.table.details')}>
                       <div className="status-flags">
                         {record.isLate && (
                           <span className="status-tag late">{t('components.attendanceFlags.late')}</span>
@@ -754,7 +754,7 @@ function TeacherDashboard() {
                         )}
                       </div>
                     </td>
-                    <td>
+                    <td data-label={t('pages.attendanceRecords.table.deduction')}>
                       {record.salaryDeduction > 0
                         ? `Rs. ${record.salaryDeduction.toFixed(2)}`
                         : '-'}

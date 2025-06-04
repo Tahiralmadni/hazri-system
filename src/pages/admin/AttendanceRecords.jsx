@@ -412,9 +412,9 @@ function AttendanceRecords() {
                       className="select-checkbox"
                     />
                   </td>
-                  <td>{record.date}</td>
-                  <td>{record.teacherName || getTeacherNameById(record.teacherId)}</td>
-                  <td>
+                  <td data-label={t('pages.attendanceRecords.table.date')}>{record.date}</td>
+                  <td data-label={t('pages.attendanceRecords.table.teacher')}>{record.teacherName || getTeacherNameById(record.teacherId)}</td>
+                  <td data-label={t('pages.attendanceRecords.table.status')}>
                     {record.status === 'present' ? (
                       <span className="status-badge present">
                         <i className="fas fa-check-circle"></i> {t('components.attendanceStatus.present')}
@@ -429,10 +429,10 @@ function AttendanceRecords() {
                       </span>
                     )}
                   </td>
-                  <td>{record.checkIn ? formatTime(record.checkIn) : '-'}</td>
-                  <td>{record.checkOut ? formatTime(record.checkOut) : '-'}</td>
-                  <td>{record.workHours || '0.00'}</td>
-                  <td>
+                  <td data-label={t('pages.attendanceRecords.table.checkIn')}>{record.checkIn ? formatTime(record.checkIn) : '-'}</td>
+                  <td data-label={t('pages.attendanceRecords.table.checkOut')}>{record.checkOut ? formatTime(record.checkOut) : '-'}</td>
+                  <td data-label={t('pages.attendanceRecords.table.workingHours')}>{record.workHours || '0.00'}</td>
+                  <td data-label={t('pages.attendanceRecords.table.details')}>
                     <div className="status-flags">
                       {record.isLate && (
                         <span className="status-tag late">{t('components.attendanceFlags.late')}</span>
@@ -446,7 +446,7 @@ function AttendanceRecords() {
                       {!record.isLate && !record.isShortDay && !record.notes && '-'}
                     </div>
                   </td>
-                  <td>{calculateDetailedDeduction(record)}</td>
+                  <td data-label={t('pages.attendanceRecords.table.deduction')}>{calculateDetailedDeduction(record)}</td>
                 </tr>
               ))
             ) : (
