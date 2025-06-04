@@ -1,11 +1,11 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
-import { createUserAccount } from '../services/firebase';
+import { createUserAccount } from '../services/firebase-mongodb-adapter';
 import '../App.css';
 
 function Login() {
-  const [username, setUsername] = useState('');
+  const [grNumber, setGrNumber] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
@@ -19,8 +19,8 @@ function Login() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     
-    if (!username.trim() || !password.trim()) {
-      return setError('Please enter username and password.');
+    if (!grNumber.trim() || !password.trim()) {
+      return setError('Please provide GR number and password.');
     }
     
     try {
@@ -30,7 +30,7 @@ function Login() {
       // Clear any existing session
       localStorage.removeItem('currentUser');
       
-      const user = await login(username, password);
+      const user = await login(grNumber, password);
       
       if (!user) {
         throw new Error('Login failed - no user data returned');
@@ -55,13 +55,9 @@ function Login() {
       
       // Show more specific error messages
       if (err.code === 'auth/user-not-found' || err.code === 'auth/wrong-password') {
-        setError('Invalid username or password');
+        setError('Invalid GR number or password');
       } else if (err.code === 'auth/too-many-requests') {
         setError('Too many login attempts. Try again later.');
-      } else if (err.code === 'auth/invalid-email') {
-        setError('Invalid email format');
-      } else if (err.code === 'auth/operation-not-allowed') {
-        setError('Operation not allowed. Please enable Email/Password login in Firebase console.');
       } else {
         setError(authError || 'Login error. Please try again.');
       }
@@ -71,7 +67,7 @@ function Login() {
   };
 
   const handleAdminLogin = () => {
-    setUsername('admin');
+    setGrNumber('admin');
     // Password field is left empty deliberately as the user should still enter their password
   };
 
@@ -81,7 +77,7 @@ function Login() {
         <div className="login-header">
           <i className="fas fa-user-clock login-icon"></i>
           <h1>Attendance System</h1>
-          <p>Darulifta</p>
+          <p>Noorulimaan</p>
         </div>
         
         {error && (
@@ -92,16 +88,16 @@ function Login() {
         
         <form className="login-form" onSubmit={handleSubmit}>
           <div className="form-group">
-            <label className="form-label" htmlFor="username">Username:</label>
+            <label className="form-label" htmlFor="grNumber">GR Number:</label>
             <div className="input-with-icon">
-              <i className="fas fa-user input-icon"></i>
+              <i className="fas fa-id-card input-icon"></i>
               <input 
                 type="text" 
-                id="username"
+                id="grNumber"
                 className="form-input"
-                value={username}
-                onChange={(e) => setUsername(e.target.value)}
-                placeholder="Enter username or email"
+                value={grNumber}
+                onChange={(e) => setGrNumber(e.target.value)}
+                placeholder="Enter GR Number"
                 disabled={loading}
                 autoComplete="username"
               />

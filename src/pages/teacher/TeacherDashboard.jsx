@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
-import { addAttendanceRecord, getTeacher, getTeacherAttendance } from '../../services/firebase';
+import { addAttendanceRecord, getTeacherById, getTeacherAttendance } from '../../services/api';
 import '../../App.css';
 import { ThemeToggle } from '../../components/ui/ThemeToggle';
 import { LanguageSwitcher } from '../../components/ui/LanguageSwitcher';
@@ -34,9 +34,27 @@ const timeToMinutes = (timeString) => {
 // Function to calculate working hours between two time strings
 const calculateWorkHours = (checkIn, checkOut) => {
   if (!checkIn || !checkOut) return 0;
-  const checkInMinutes = timeToMinutes(checkIn);
-  const checkOutMinutes = timeToMinutes(checkOut);
-  return ((checkOutMinutes - checkInMinutes) / 60).toFixed(2);
+  
+  // Parse the time strings
+  const [checkInHours, checkInMinutes] = checkIn.split(':').map(Number);
+  const [checkOutHours, checkOutMinutes] = checkOut.split(':').map(Number);
+  
+  // Calculate total minutes for each time
+  const checkInTotalMinutes = checkInHours * 60 + checkInMinutes;
+  const checkOutTotalMinutes = checkOutHours * 60 + checkOutMinutes;
+  
+  // Calculate difference in minutes
+  let diffMinutes = checkOutTotalMinutes - checkInTotalMinutes;
+  
+  // If the difference is negative (meaning checkout is on the next day)
+  if (diffMinutes < 0) {
+    diffMinutes += 24 * 60; // Add 24 hours in minutes
+  }
+  
+  // Convert to hours with 2 decimal places
+  const hours = (diffMinutes / 60).toFixed(2);
+  
+  return hours;
 };
 
 // Function to calculate salary deduction for lateness and leaves
@@ -110,35 +128,28 @@ function TeacherDashboard() {
   // Load teacher data and attendance records
   useEffect(() => {
     const loadTeacherData = async () => {
+      if (!currentUser?.id) {
+        setErrorState(true);
+        return;
+      }
+
       setIsLoading(true);
       setLoadingError(null);
 
-      // Add a timeout to prevent infinite loading
-      const loadingTimeout = setTimeout(() => {
-        setIsLoading(false);
-        setLoadingError(t('components.error.generic'));
-        // Force redirect to login on timeout
-        logout().then(() => navigate('/login'));
-      }, 30000); // 30 seconds timeout
-
       try {
-        if (!currentUser || !currentUser.id) {
-          setErrorState(true);
-          throw new Error(t('components.error.noUserData', 'User information not available.'));
-        }
-
-        // Load teacher data
-        const teacher = await getTeacher(currentUser.id);
-
+        const teacherId = currentUser.id;
+        
+        // Get teacher data
+        const teacher = await getTeacherById(currentUser.id);
+        
         if (!teacher) {
-          setErrorState(true);
-          throw new Error(t('components.error.teacherNotFound', 'Teacher information not found.'));
+          throw new Error(t('components.error.teacherNotFound'));
         }
-
+        
         setTeacherData(teacher);
-
-        // Load attendance records
-        const records = await getTeacherAttendance(currentUser.id);
+        
+        // Get attendance records for today
+        const records = await getTeacherAttendance(teacherId);
 
         if (Array.isArray(records)) {
           // Sort records by date (newest first)
@@ -162,7 +173,6 @@ function TeacherDashboard() {
         setErrorState(true);
         setLoadingError(error.message || t('components.error.generic'));
       } finally {
-        clearTimeout(loadingTimeout); // Clear the timeout
         setIsLoading(false);
       }
     };
@@ -239,9 +249,12 @@ function TeacherDashboard() {
         ? (formData.notes || t('components.attendanceStatus.leaveDefaultNote', 'Leave taken'))
         : formData.notes;
 
+      // Get the teacherId, ensuring we have a valid ID
+      const teacherId = teacherData.id || teacherData._id || currentUser.id;
+      
       // Create attendance record
       const attendanceData = {
-        teacherId: currentUser.id,
+        teacherId: teacherId,
         teacherName: currentUser.name,
         date: formData.date,
         status: formData.status,
@@ -250,12 +263,14 @@ function TeacherDashboard() {
         workHours: formData.status === 'present' ? workHours : 0,
         isLate: isLate,
         isShortDay: isEarly,
-        salaryDeduction: Number(salaryDeduction.toFixed(2)),  // Convert to number with 2 decimal places
+        salaryDeduction: Number(salaryDeduction.toFixed(2)),
         notes: leaveNote,
         createdAt: new Date().toISOString()
       };
 
-      // Save to Firebase
+      console.log("Saving attendance record with teacherId:", teacherId);
+      
+      // Save attendance record
       const result = await addAttendanceRecord(attendanceData);
 
       if (result.success) {

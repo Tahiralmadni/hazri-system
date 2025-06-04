@@ -1,8 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
-import { db, getTeacher } from '../../services/firebase';
-import { doc, getDoc } from 'firebase/firestore';
+import { getTeacherById } from '../../services/api';
 import '../../App.css';
 import { ThemeToggle } from '../../components/ui/ThemeToggle';
 import { LanguageSwitcher } from '../../components/ui/LanguageSwitcher';
@@ -49,7 +48,7 @@ function TeacherProfile() {
   // Fetch teacher data
   useEffect(() => {
     const fetchTeacherData = async () => {
-    setIsLoading(true);
+      setIsLoading(true);
       try {
         console.log("Fetching teacher with ID:", id);
         
@@ -60,20 +59,17 @@ function TeacherProfile() {
           return;
         }
         
-        // Get the teacher document from Firestore
-        const docRef = doc(db, 'teachers', id);
-        console.log("Looking up teacher document with reference:", docRef);
-        const docSnap = await getDoc(docRef);
+        // Get teacher data using the API service instead of Firebase
+        const teacherData = await getTeacherById(id);
         
-        if (docSnap.exists()) {
-          const teacherData = {
-            id: docSnap.id,
-            ...docSnap.data(),
-            // Default data for fields that might not exist in Firestore
-            subjects: docSnap.data().subjects || [t('pages.teacherProfile.generalSubjects', 'General Subjects')],
-            workingHours: docSnap.data().workingHours || { startTime: '08:00', endTime: '16:00' },
-            monthlySalary: docSnap.data().monthlySalary || 0,
-            attendanceSummary: docSnap.data().attendanceSummary || {
+        if (teacherData) {
+          // Add default values for fields that might not exist
+          const completeTeacherData = {
+            ...teacherData,
+            subjects: teacherData.subjects || [t('pages.teacherProfile.generalSubjects', 'General Subjects')],
+            workingHours: teacherData.workingHours || { startTime: '08:00', endTime: '16:00' },
+            monthlySalary: teacherData.monthlySalary || 0,
+            attendanceSummary: teacherData.attendanceSummary || {
               currentMonth: {
                 totalDays: 30,
                 presentDays: 0,
@@ -93,14 +89,14 @@ function TeacherProfile() {
                 shortLeaveCount: 0
               }
             },
-            recentAttendance: docSnap.data().recentAttendance || [],
+            recentAttendance: teacherData.recentAttendance || [],
           };
           
-          console.log("Teacher data loaded:", teacherData);
-          setTeacher(teacherData);
+          console.log("Teacher data loaded:", completeTeacherData);
+          setTeacher(completeTeacherData);
           setIsLoading(false);
         } else {
-          console.error("Teacher document not found");
+          console.error("Teacher not found");
           setNotFound(true);
           setIsLoading(false);
         }
@@ -229,7 +225,7 @@ function TeacherProfile() {
           </div>
           
           <h1 className="teacher-name">{teacher.name}</h1>
-          <p className="teacher-designation">{teacher.designation}</p>
+          <p className="teacher-designation">{teacher.designation || 'استاد'}</p>
           
           {/* Credentials Box */}
           <div className="credentials-box">
@@ -237,13 +233,19 @@ function TeacherProfile() {
               <i className="fas fa-key"></i> {t('pages.teacherProfile.loginInfo')}
             </div>
             <div className="credentials-item">
-              <strong>{t('pages.teacherProfile.email')}:</strong> {teacher.email}
+              <strong>GR Number:</strong> {teacher.grNumber || 'Not Assigned'}
             </div>
             <div className="credentials-item">
-              <strong>{t('pages.teacherProfile.username')}:</strong> {teacher.username}
+              <strong>{t('pages.teacherProfile.email')}:</strong> {teacher.email || 'N/A'}
             </div>
             <div className="credentials-item">
-              <strong>{t('pages.teacherProfile.password')}:</strong> {teacher.password || t('pages.teacherProfile.notAvailable')}
+              <strong>{t('pages.teacherProfile.username')}:</strong> {teacher.username || 'N/A'}
+            </div>
+            <div className="credentials-item">
+              <strong>{t('pages.teacherProfile.password')}:</strong> {teacher.plainPassword || t('pages.teacherProfile.notAvailable')}
+            </div>
+            <div className="credentials-item">
+              <strong>ID:</strong> {teacher._id || 'N/A'}
             </div>
           </div>
 
@@ -255,7 +257,7 @@ function TeacherProfile() {
               </div>
               <div className="info-box-content">
                 <div className="info-box-label">{t('pages.teacherProfile.salary')}</div>
-                <div className="info-box-value">Rs. {teacher.monthlySalary.toLocaleString()}</div>
+                <div className="info-box-value">Rs. {teacher.monthlySalary ? teacher.monthlySalary.toLocaleString() : '0'}</div>
               </div>
             </div>
 
@@ -265,7 +267,9 @@ function TeacherProfile() {
               </div>
               <div className="info-box-content">
                 <div className="info-box-label">{t('pages.teacherProfile.workingHours')}</div>
-                <div className="info-box-value">{teacher.workingHours.startTime} - {teacher.workingHours.endTime}</div>
+                <div className="info-box-value">
+                  {teacher.workingHours?.startTime || '08:00'} - {teacher.workingHours?.endTime || '16:00'}
+                </div>
               </div>
             </div>
 
@@ -275,7 +279,7 @@ function TeacherProfile() {
               </div>
               <div className="info-box-content">
                 <div className="info-box-label">{t('pages.teacherProfile.contactNumber')}</div>
-                <div className="info-box-value">{teacher.contactNumber || t('pages.teacherProfile.notAvailable')}</div>
+                <div className="info-box-value">{teacher.phoneNumber || teacher.contactNumber || t('pages.teacherProfile.notAvailable')}</div>
               </div>
             </div>
 
@@ -285,7 +289,9 @@ function TeacherProfile() {
               </div>
               <div className="info-box-content">
                 <div className="info-box-label">{t('pages.teacherProfile.joiningDate')}</div>
-                <div className="info-box-value">{teacher.joiningDate}</div>
+                <div className="info-box-value">
+                  {new Date(teacher.joiningDate).toLocaleDateString('ur-PK') || 'N/A'}
+                </div>
               </div>
             </div>
           </div>
@@ -295,7 +301,7 @@ function TeacherProfile() {
             <button className="btn edit-btn" onClick={() => navigate('/admin/teachers', { state: { editTeacher: teacher } })}>
               <i className="fas fa-edit"></i> {t('components.buttons.edit')}
             </button>
-            <button className="btn delete-btn" onClick={() => navigate('/admin/teachers', { state: { deleteTeacher: teacher.id } })}>
+            <button className="btn delete-btn" onClick={() => navigate('/admin/teachers', { state: { deleteTeacher: teacher._id } })}>
               <i className="fas fa-trash-alt"></i> {t('components.buttons.delete')}
             </button>
           </div>

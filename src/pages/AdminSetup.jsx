@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { createUserAccount } from '../services/firebase';
+import { createUserAccount } from '../services/firebase-mongodb-adapter';
 import { Link } from 'react-router-dom';
 import '../App.css';
 import { ThemeToggle } from '../components/ui/ThemeToggle';

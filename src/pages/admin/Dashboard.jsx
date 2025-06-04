@@ -1,8 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
-import { db, getTeachers, getAllAttendance } from '../../services/firebase';
-import { collection, doc, setDoc, getDocs } from 'firebase/firestore';
+import { getTeachers, getAllAttendance } from '../../services/api';
 import '../../App.css';
 import { ThemeToggle } from '../../components/ui/ThemeToggle';
 import { LanguageSwitcher } from '../../components/ui/LanguageSwitcher';

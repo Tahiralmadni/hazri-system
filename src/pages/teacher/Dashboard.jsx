@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
-import { addAttendanceRecord, getTeacher, getTeacherAttendance, getTeacherAttendanceSimple, getTeachers } from '../../services/firebase';
+import { addAttendanceRecord, getTeacherById, getTeacherAttendance, getTeachers } from '../../services/api';
+import { getTeacherAttendanceSimple } from '../../services/firebase-mongodb-adapter';
 import '../../App.css';
 import { ThemeToggle } from '../../components/ui/ThemeToggle';
 import { LanguageSwitcher } from '../../components/ui/LanguageSwitcher';
@@ -34,9 +35,29 @@ const timeToMinutes = (timeString) => {
 // Function to calculate working hours between two time strings
 const calculateWorkHours = (checkIn, checkOut) => {
   if (!checkIn || !checkOut) return 0;
-  const checkInMinutes = timeToMinutes(checkIn);
-  const checkOutMinutes = timeToMinutes(checkOut);
-  return ((checkOutMinutes - checkInMinutes) / 60).toFixed(2);
+  
+  // Parse the time strings
+  const [checkInHours, checkInMinutes] = checkIn.split(':').map(Number);
+  const [checkOutHours, checkOutMinutes] = checkOut.split(':').map(Number);
+  
+  // Calculate total minutes for each time
+  const checkInTotalMinutes = checkInHours * 60 + checkInMinutes;
+  const checkOutTotalMinutes = checkOutHours * 60 + checkOutMinutes;
+  
+  // Calculate difference in minutes
+  let diffMinutes = checkOutTotalMinutes - checkInTotalMinutes;
+  
+  // If the difference is negative (meaning checkout is on the next day)
+  if (diffMinutes < 0) {
+    diffMinutes += 24 * 60; // Add 24 hours in minutes
+  }
+  
+  // Convert to hours with 2 decimal places
+  const hours = (diffMinutes / 60).toFixed(2);
+  
+  console.log(`Check-in: ${checkIn}, Check-out: ${checkOut}, Hours: ${hours}`);
+  
+  return hours;
 };
 
 // Function to calculate salary deduction for lateness and leaves
@@ -76,7 +97,7 @@ const calculateSalaryDeduction = (status, monthlySalary, checkIn, startTime) => 
 function TeacherDashboard() {
   const { t } = useTranslation();
   const today = getTodayDateString();
-  const [isLoading, setIsLoading] = useState(false); // Start with no loading
+  const [isLoading, setIsLoading] = useState(false);
   const [todayRecord, setTodayRecord] = useState(null);
   const [hasCheckedIn, setHasCheckedIn] = useState(false);
   const [hasCheckedOut, setHasCheckedOut] = useState(false);
@@ -97,15 +118,7 @@ function TeacherDashboard() {
 
   const { currentUser, logout } = useAuth();
   const navigate = useNavigate();
-
-  // Force clear loading state after component mount
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setIsLoading(false);
-    }, 3000); // Force clear after 3 seconds
-
-    return () => clearTimeout(timer);
-  }, []);
+  const location = useLocation();
 
   // Load teacher data and attendance records
   useEffect(() => {
@@ -135,7 +148,7 @@ function TeacherDashboard() {
         console.log("Attempting to fetch teacher data with ID:", currentUser.id);
         
         // Try to find the teacher directly using their ID
-        let teacher = await getTeacher(currentUser.id);
+        let teacher = await getTeacherById(currentUser.id);
         
         // If teacher not found by ID, try to find by username
         if (!teacher && currentUser.username) {
@@ -169,11 +182,13 @@ function TeacherDashboard() {
         setTeacherData(teacher);
         
         // Now that we have the teacher, load attendance records
-        console.log("Fetching attendance records for teacher ID:", teacher.id);
+        const teacherId = teacher.id || teacher._id; // Use either id or _id
+        console.log("Fetching attendance records for teacher ID:", teacherId);
         
         try {
-          // Try first with getTeacherAttendance
-          const records = await getTeacherAttendance(teacher.id);
+          // Always force a fresh load of records
+          console.log("Forcing fresh fetch of attendance records");
+          const records = await getTeacherAttendance(teacherId);
           
           if (Array.isArray(records) && records.length > 0) {
             console.log(`Successfully loaded ${records.length} attendance records`);
@@ -186,11 +201,16 @@ function TeacherDashboard() {
             setAttendanceRecords(sortedRecords);
             
             // Check if there's already a record for today
-            const todayRec = sortedRecords.find(r => r.date === today);
+            const todayRec = sortedRecords.find(r => {
+              // Normalize date format for comparison
+              const recordDate = typeof r.date === 'string' ? r.date.split('T')[0] : '';
+              return recordDate === today;
+            });
+            
             if (todayRec) {
               setTodayRecord(todayRec);
-              setHasCheckedIn(!!todayRec.checkIn);
-              setHasCheckedOut(!!todayRec.checkOut);
+              setHasCheckedIn(!!todayRec.checkIn || !!todayRec.timeIn);
+              setHasCheckedOut(!!todayRec.checkOut || !!todayRec.timeOut);
             }
           } else {
             // If no records found or records is not an array, set empty array
@@ -213,7 +233,7 @@ function TeacherDashboard() {
     };
 
     loadTeacherData();
-  }, [currentUser, today, refreshKey, t, navigate, logout]);
+  }, [currentUser, today, refreshKey, t, navigate, logout, location?.pathname]);
 
   // Update time every minute
   useEffect(() => {
@@ -284,37 +304,50 @@ function TeacherDashboard() {
         ? (formData.notes || t('components.attendanceStatus.leaveDefaultNote', 'Leave taken'))
         : formData.notes;
 
+      // Get the teacherId, ensuring we have a valid ID
+      const teacherId = teacherData.id || teacherData._id || currentUser.id;
+      
       // Create attendance record
       const attendanceData = {
-        teacherId: currentUser.id,
-        teacherName: currentUser.name,
+        teacherId: teacherId,
+        teacher: teacherId, // Include this field for MongoDB reference
+        teacherName: teacherData.name || currentUser.name,
         date: formData.date,
         status: formData.status,
         checkIn: formData.status === 'present' ? formData.checkIn : null,
         checkOut: formData.status === 'present' ? formData.checkOut : null,
-        workHours: formData.status === 'present' ? workHours : 0,
+        timeIn: formData.status === 'present' ? formData.checkIn : null,
+        timeOut: formData.status === 'present' ? formData.checkOut : null,
+        workHours: formData.status === 'present' ? parseFloat(workHours) : 0,
         isLate: isLate,
         isShortDay: isEarly,
-        salaryDeduction: Number(salaryDeduction.toFixed(2)),  // Convert to number with 2 decimal places
+        salaryDeduction: Number(salaryDeduction.toFixed(2)),
         notes: leaveNote,
+        comment: leaveNote, // Include comment field for backend compatibility
         createdAt: new Date().toISOString()
       };
 
-      // Save to Firebase
+      console.log("Saving attendance record with teacherId:", teacherId);
+      console.log("Attendance data:", attendanceData);
+      
+      // Save attendance record
       const result = await addAttendanceRecord(attendanceData);
 
-      if (result.success) {
-        // Use the returned record from Firebase for consistency
-        const savedRecord = result.record || {
+      console.log("Attendance record result:", result);
+
+      // Check if result exists
+      if (result) {
+        // Use the returned record from the API for consistency
+        const savedRecord = result.record || result || {
           ...attendanceData,
-          id: result.id
+          id: result.id || result._id
         };
 
         // If this is today's record, update todayRecord state
         if (formData.date === today) {
           setTodayRecord(savedRecord);
-          setHasCheckedIn(!!savedRecord.checkIn);
-          setHasCheckedOut(!!savedRecord.checkOut);
+          setHasCheckedIn(!!savedRecord.checkIn || !!savedRecord.timeIn);
+          setHasCheckedOut(!!savedRecord.checkOut || !!savedRecord.timeOut);
         }
 
         // Add to records array - ensure we're updating the state properly
@@ -342,17 +375,43 @@ function TeacherDashboard() {
         // Show success alert
         alert(t('pages.teacherDashboard.attendanceSuccess', 'Attendance recorded successfully'));
 
-        // Force a re-fetch of attendance data to ensure UI is updated
-        setTimeout(() => {
-          setRefreshKey(oldKey => oldKey + 1);
-        }, 500);
+        // Refresh attendance data without using setTimeout
+        getTeacherAttendance(teacherId).then(records => {
+          if (Array.isArray(records) && records.length > 0) {
+            // Sort records by date (newest first)
+            const sortedRecords = [...records].sort((a, b) => {
+              return new Date(b.date) - new Date(a.date);
+            });
+            setAttendanceRecords(sortedRecords);
+          }
+        }).catch(err => {
+          console.error("Error refreshing attendance data:", err);
+          // We already updated UI with the new record, so this isn't critical
+        });
       } else {
-        throw new Error(result.error || t('components.error.unknownError', 'Unknown error occurred'));
+        // Make sure to clear loading state on this error path too
+        setIsLoading(false);
+        throw new Error(t('components.error.unknownError', 'Unknown error occurred'));
       }
     } catch (error) {
       console.error('Error submitting attendance:', error);
-      alert(t('pages.teacherDashboard.attendanceError', 'Error submitting attendance. Please try again.'));
+      
+      // Get a more specific error message if available
+      let errorMessage = t('pages.teacherDashboard.attendanceError', 'Error submitting attendance. Please try again.');
+      
+      if (error.response) {
+        if (error.response.data && error.response.data.message) {
+          errorMessage = error.response.data.message;
+        } else if (error.response.status === 500) {
+          errorMessage = 'Server error processing attendance record. Please check console for details.';
+        }
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
+      
+      alert(errorMessage);
     } finally {
+      // Ensure loading state is always cleared, even if there's an error
       setIsLoading(false);
     }
   };
@@ -391,8 +450,9 @@ function TeacherDashboard() {
         <meta name="description" content={t('app.subtitle')} />
       </Helmet>
 
+      {/* Only show loading overlay when explicitly loading data */}
       {isLoading && (
-        <div className="loading-overlay">
+        <div className="loading-overlay" style={{ opacity: 0.7, zIndex: 100 }}>
           <div className="loading-spinner"></div>
           <p>{loadingError || t('components.loading')}</p>
         </div>
@@ -678,8 +738,8 @@ function TeacherDashboard() {
                         </span>
                       )}
                     </td>
-                    <td>{record.checkIn ? formatTime(record.checkIn) : '-'}</td>
-                    <td>{record.checkOut ? formatTime(record.checkOut) : '-'}</td>
+                    <td>{(record.timeIn || record.checkIn) ? formatTime(record.timeIn || record.checkIn) : '-'}</td>
+                    <td>{(record.timeOut || record.checkOut) ? formatTime(record.timeOut || record.checkOut) : '-'}</td>
                     <td>{record.workHours || '0.00'}</td>
                     <td>
                       <div className="status-flags">

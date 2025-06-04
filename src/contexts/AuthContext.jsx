@@ -1,6 +1,5 @@
 import { createContext, useState, useContext, useEffect } from 'react';
-import { auth, loginWithEmail, logoutUser, getTeachers, getTeacher } from '../services/firebase';
-import { onAuthStateChanged } from 'firebase/auth';
+import { login as loginApi, logoutUser, getCurrentUser } from '../services/api';
 
 // Create the auth context
 const AuthContext = createContext();
@@ -36,107 +35,55 @@ export const AuthProvider = ({ children }) => {
   const [loading, setLoading] = useState(true);
   const [authError, setAuthError] = useState(null);
   const SESSION_DURATION = 8 * 60 * 60 * 1000; // 8 hours in milliseconds
-  // Login function using Firebase
-  const login = async (username, password) => {
+
+  // Login function using API
+  const login = async (grNumber, password) => {
     try {
       setLoading(true);
       setAuthError(null);
-      console.log(`Attempting login for username/email: ${username}`);
+      console.log(`Attempting login with GR number: ${grNumber}`);
       
-      // First, try to find the teacher in Firestore by username or email (case insensitive)
-      const teachers = await getTeachers();
-      console.log(`Found ${teachers.length} teachers in database`);
+      const data = await loginApi(grNumber, password);
+      const user = data.user;
       
-      // Check for a match using case-insensitive comparison for username/email
-      const teacher = teachers.find(t => {
-        // Check username match
-        const usernameMatch = t.username && username && 
-          t.username.toLowerCase() === username.toLowerCase();
+      console.log('User authenticated successfully:', user);
+      console.log('Token received from server:', data.token ? 'Token exists' : 'No token');
+      
+      setCurrentUser(user);
+      setUserRole(user.role);
+      
+      // Store the token with the correct key name that backend expects and in other common locations
+      // for maximum compatibility across the app
+      if (data.token) {
+        localStorage.setItem('currentUser', JSON.stringify(user));
+        localStorage.setItem('x-auth-token', data.token);
+        localStorage.setItem('token', data.token);
+        localStorage.setItem('authToken', data.token);
         
-        // Check email match
-        const emailMatch = t.email && username && 
-          t.email.toLowerCase() === username.toLowerCase();
-        
-        // Check password (exact match)
-        const passwordMatch = t.password === password;
-        
-        return (usernameMatch || emailMatch) && passwordMatch;
-      });
-
-      if (teacher) {
-        console.log(`Teacher found with matching credentials in Firestore: ${teacher.name}`);
-        // Teacher found with matching credentials in Firestore
-        const userData = {
-          id: teacher.id,
-          email: teacher.email,
-          name: teacher.name,
-          username: teacher.username,
-          role: 'teacher',
-          lastLogin: new Date().getTime()
-        };
-        setCurrentUser(userData);
-        setUserRole('teacher');
-        localStorage.setItem('currentUser', JSON.stringify(userData));
-        return userData;
+        // Add timestamp for session management
+        user.lastLogin = Date.now();
+        localStorage.setItem('currentUser', JSON.stringify(user));
       }
       
-      // Special handling for admin login
-      const isEmailFormat = username.includes('@');
-      const adminEmail = "tahiralmadni@gmail.com";
+      // Verify token was stored
+      const storedToken = localStorage.getItem('x-auth-token');
+      console.log('Token stored in localStorage:', storedToken ? 'Successfully stored' : 'Failed to store');
       
-      // Check for admin login
-      if ((isEmailFormat && username.toLowerCase() === adminEmail.toLowerCase()) || 
-          (!isEmailFormat && username.toLowerCase() === "admin")) {
-        
-        // Try Firebase Authentication for admin
-        try {
-          const emailToUse = isEmailFormat ? username : adminEmail;
-          console.log(`Trying admin login with email: ${emailToUse}`);
-          
-          const userCredential = await loginWithEmail(emailToUse, password);
-          const user = userCredential.user;
-          
-          console.log('Admin user authenticated successfully');
-          const userData = {
-            id: user.uid,
-            email: user.email,
-            name: 'ایڈمن صاحب',
-            role: 'admin',
-            lastLogin: new Date().getTime()
-          };
-          setCurrentUser(userData);
-          setUserRole('admin');
-          localStorage.setItem('currentUser', JSON.stringify(userData));
-          return userData;
-        } catch (adminAuthError) {
-          console.error("Admin authentication failed:", adminAuthError);
-          throw new Error('Invalid admin credentials');
-        }
-      }
-      
-      // For non-admin users, try one more time with different approaches
-      console.log("No direct match found, trying alternative approaches");
-      
-      // Try to find teacher by just the username (ignoring password for debugging)
-      const teacherByUsernameOnly = teachers.find(t => 
-        (t.username && t.username.toLowerCase() === username.toLowerCase()) ||
-        (t.email && t.email.toLowerCase() === username.toLowerCase())
-      );
-      
-      if (teacherByUsernameOnly) {
-        console.log(`Found teacher by username/email, but password doesn't match. Teacher: ${teacherByUsernameOnly.name}`);
-        console.log(`Stored password: ${teacherByUsernameOnly.password}, Entered password: ${password}`);
-        // Password doesn't match
-        throw new Error('Invalid password');
-      } else {
-        console.log(`No teacher found with username/email: ${username}`);
-        throw new Error('Teacher not found with this username');
-      }
-      
+      return user;
     } catch (error) {
       console.error('Login error:', error);
-      setAuthError(error.message);
-      throw error;
+      
+      // Properly extract API error messages if available
+      if (error.response?.data?.message) {
+        const errorMessage = error.response.data.message;
+        setAuthError(errorMessage);
+        // Pass through the Axios error with response data
+        throw error;
+      } else {
+        // Handle non-API errors
+        setAuthError(error.message || 'Authentication failed');
+        throw error;
+      }
     } finally {
       setLoading(false);
     }
@@ -145,10 +92,17 @@ export const AuthProvider = ({ children }) => {
   // Log out function
   const logout = async () => {
     try {
-      await logoutUser();
+      // No need to call API since we're just removing client-side data
       setCurrentUser(null);
       setUserRole(null);
+      
+      // Clear all possible token storage locations
       localStorage.removeItem('currentUser');
+      localStorage.removeItem('x-auth-token');
+      localStorage.removeItem('token');
+      localStorage.removeItem('authToken');
+      
+      console.log('Logged out successfully');
       return true;
     } catch (error) {
       console.error('Logout error:', error);
@@ -185,137 +139,79 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  // Listen for auth state changes
+  // Check authentication state on component mount
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, async (user) => {
+    const verifyAuthentication = async () => {
+      try {
+        // If we have a token stored, validate it with the server
+        if (localStorage.getItem('x-auth-token')) {
+          const user = await getCurrentUser();
       if (user) {
-        // User is signed in
-        try {
-          // Check if admin
-          if (user.email === 'tahiralmadni@gmail.com') {
-            const userData = {
-              id: user.uid,
-              email: user.email,
-              name: 'ایڈمن صاحب',
-              role: 'admin',
-              lastLogin: new Date().getTime()
-            };
-            setCurrentUser(userData);
-            setUserRole('admin');
-            localStorage.setItem('currentUser', JSON.stringify(userData));
+            setCurrentUser(user);
+            setUserRole(user.role);
           } else {
-            // Look up teacher data
-            const teachers = await getTeachers();
-            const teacher = teachers.find(t => t.email === user.email);
-
-            if (teacher) {
-              const userData = {
-                id: teacher.id,
-                email: teacher.email,
-                name: teacher.name,
-                username: teacher.username,
-                role: 'teacher',
-                lastLogin: new Date().getTime()
-              };
-              setCurrentUser(userData);
-              setUserRole('teacher');
-              localStorage.setItem('currentUser', JSON.stringify(userData));
-            } else {
-              // If no teacher found but user is authenticated, log them out
-              await logoutUser();
+            // Clear invalid session
               setCurrentUser(null);
               setUserRole(null);
               localStorage.removeItem('currentUser');
-            }
-          }
-        } catch (error) {
-          console.error('Error setting user data:', error);
-          setCurrentUser(null);
-          setUserRole(null);
+            localStorage.removeItem('x-auth-token');
         }
       } else {
-        // Check if we have a valid session stored locally
-        try {
+          // Check if we have a valid session stored locally but no token
           const storedUser = JSON.parse(localStorage.getItem('currentUser'));
           if (storedUser && checkSessionValidity()) {
-            // Before restoring, ensure the stored user is not the admin if Firebase auth failed
-            if (storedUser.role === 'admin' && storedUser.email !== 'tahiralmadni@gmail.com') {
-                 console.warn("Attempted to restore non-admin user with admin role from local storage. Clearing.");
-                 setCurrentUser(null);
-                 setUserRole(null);
-                 localStorage.removeItem('currentUser');
-            } else {
                 setCurrentUser(storedUser);
                 setUserRole(storedUser.role);
-                console.log('Restored session from local storage');
-            }
           } else {
+            // Clear invalid session
             setCurrentUser(null);
             setUserRole(null);
             localStorage.removeItem('currentUser');
           }
+          }
         } catch (error) {
-          console.error('Error restoring session:', error);
+        console.error('Authentication verification error:', error);
+        // Clear invalid session
           setCurrentUser(null);
           setUserRole(null);
           localStorage.removeItem('currentUser');
-        }
+        localStorage.removeItem('x-auth-token');
+      } finally {
+        setLoading(false);
       }
-      setLoading(false);
-    });
+    };
 
-    // Set up a periodic session refresh
-    const sessionRefreshInterval = setInterval(() => {
+    verifyAuthentication();
+  }, []);
+
+  // Set up activity monitoring to refresh session
+  useEffect(() => {
+    // Only refresh session on page navigation or periodic check
+    // NOT on every mouse movement which causes unwanted loading
+    const checkSessionInterval = setInterval(() => {
       if (currentUser) {
-        console.log('Refreshing session');
         refreshSession();
       }
-    }, 30 * 60 * 1000); // Refresh every 30 minutes
-
-    // Set up activity listeners to refresh the session
-    const activityEvents = ['mousedown', 'keydown', 'touchstart', 'scroll'];
-    let lastActivityTime = Date.now();
-    const ACTIVITY_THRESHOLD = 5 * 60 * 1000; // 5 minutes
-
-    // Use a throttled version of refresh to prevent too many updates
-    const refreshOnActivity = () => {
-      const now = Date.now();
-      if (currentUser && (now - lastActivityTime > ACTIVITY_THRESHOLD)) {
-        console.log('Activity detected, refreshing session');
-        refreshSession();
-        lastActivityTime = now;
-      }
-    };
-
-    // Add event listeners with throttling
-    activityEvents.forEach(event => {
-      window.addEventListener(event, refreshOnActivity, { passive: true });
-    });
-
-    // Clean up
+    }, 15 * 60 * 1000); // Check every 15 minutes instead of on every click
+    
     return () => {
-      unsubscribe();
-      clearInterval(sessionRefreshInterval);
-      activityEvents.forEach(event => {
-        window.removeEventListener(event, refreshOnActivity);
-      });
+      clearInterval(checkSessionInterval);
     };
-  }, []); // Removed currentUser from dependencies
+  }, [currentUser]);
 
-  // Value to provide through context
+  // Context value
   const value = {
     currentUser,
     userRole,
     loading,
     authError,
     login,
-    logout,
-    refreshSession
+    logout
   };
 
   return (
     <AuthContext.Provider value={value}>
-      {!loading && children}
+      {children}
     </AuthContext.Provider>
   );
 };

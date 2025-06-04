@@ -1,15 +1,37 @@
 import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
-import { getTeachers, addTeacher, updateTeacher, deleteTeacher } from '../../services/firebase';
-import { createUserAccount } from '../../services/firebase';
+import { getTeachers, addTeacher, updateTeacher, deleteTeacher } from '../../services/api';
 import '../../App.css';
-import { collection, doc, setDoc } from 'firebase/firestore';
-import { db } from '../../services/firebase';
 import { ThemeToggle } from '../../components/ui/ThemeToggle';
 import { LanguageSwitcher } from '../../components/ui/LanguageSwitcher';
 import { useTranslation } from 'react-i18next';
 import { Helmet } from 'react-helmet-async';
+
+// Function to format joining date
+const formatJoiningDate = (dateString) => {
+  if (!dateString) return '-';
+  
+  // Check if it's an ISO date string
+  if (dateString.includes('T')) {
+    try {
+      const date = new Date(dateString);
+      if (isNaN(date)) return dateString;
+      
+      return date.toLocaleDateString('en-US', {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric'
+      });
+    } catch (error) {
+      console.error('Error formatting date:', error);
+      return dateString;
+    }
+  }
+  
+  // Return the date string if it's already formatted
+  return dateString;
+};
 
 // Function to generate random password
 const generatePassword = () => {
@@ -19,7 +41,44 @@ const generatePassword = () => {
     password += chars.charAt(Math.floor(Math.random() * chars.length));
   }
   return password;
-  zzzxzx6//'/;l]\;l;ll.,vg
+};
+
+// Add auto-generate GR number function after the generatePassword function
+// Function to generate a random 5-digit GR number
+const generateGrNumber = () => {
+  // Generate a random number between 10000 and 99999
+  return Math.floor(10000 + Math.random() * 90000).toString();
+};
+
+// Add a function to check if a GR number already exists and generate a unique one
+const generateUniqueGrNumber = async () => {
+  try {
+    // Fetch all teachers to check existing GR numbers
+    const teachersData = await getTeachers();
+    const existingGrNumbers = teachersData
+      .map(teacher => teacher.grNumber)
+      .filter(grNumber => grNumber); // Filter out null/undefined/empty
+    
+    let grNumber;
+    let attempts = 0;
+    const maxAttempts = 50;
+    
+    // Keep generating until we find a unique one or hit max attempts
+    do {
+      grNumber = generateGrNumber();
+      attempts++;
+      
+      if (attempts > maxAttempts) {
+        console.warn("Reached maximum attempts to generate unique GR number");
+        break;
+      }
+    } while (existingGrNumbers.includes(grNumber));
+    
+    return grNumber;
+  } catch (error) {
+    console.error("Error generating unique GR number:", error);
+    return generateGrNumber(); // Fallback to simple generation if error
+  }
 };
 
 function TeacherManagement() {
@@ -30,17 +89,23 @@ function TeacherManagement() {
   const [isLoading, setIsLoading] = useState(false);
   const [formData, setFormData] = useState({
     name: '',
-    designation: t('pages.teacherManagement.defaultDesignation', 'جونیئر استاد'),
-    monthlySalary: '',
-    contactNumber: '',
-    email: '',
+    designation: 'استاد',
+    grNumber: '',
+    monthlySalary: 0,
     startTime: '08:00',
-    endTime: '16:00'
+    endTime: '16:00',
+    contactNumber: '',
+    email: ''
   });
   const [isEditMode, setIsEditMode] = useState(false);
   const [currentEditId, setCurrentEditId] = useState(null);
   const [generatedPassword, setGeneratedPassword] = useState('');
   const [generatedUsername, setGeneratedUsername] = useState('');
+  // Add states for multiple selection
+  const [selectedTeachers, setSelectedTeachers] = useState([]);
+  const [selectAll, setSelectAll] = useState(false);
+  // Add state for loading GR number
+  const [isGeneratingGrNumber, setIsGeneratingGrNumber] = useState(false);
   
   const { currentUser, logout } = useAuth();
   const navigate = useNavigate();
@@ -50,18 +115,132 @@ function TeacherManagement() {
     fetchTeachers();
   }, []);
   
+  // Set up event listener to refresh data when the tab becomes active again
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        console.log("Page became visible again, refreshing teacher data");
+        fetchTeachers();
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, []);
+  
   // Fetch teachers from Firebase
   const fetchTeachers = async () => {
+    console.log("Fetching teachers...");
     setIsLoading(true);
     try {
       const teachersData = await getTeachers();
-      setTeachers(teachersData);
+      console.log("Fetched teachers data:", teachersData);
+      
+      // Ensure consistent data format, particularly for salary
+      const processedTeachers = teachersData.map(teacher => ({
+        ...teacher,
+        monthlySalary: teacher.monthlySalary ? Number(teacher.monthlySalary) : 0,
+        designation: teacher.designation || 'استاد',
+        workingHours: teacher.workingHours || { startTime: '08:00', endTime: '16:00' }
+      }));
+      
+      setTeachers(processedTeachers);
+      console.log("Teachers state updated with:", processedTeachers);
     } catch (error) {
       console.error('Error fetching teachers:', error);
     } finally {
       setIsLoading(false);
     }
   };
+  
+  // Update existing teachers with missing fields
+  const fixExistingTeachers = async () => {
+    try {
+      console.log("Starting to fix existing teacher records...");
+      setIsLoading(true);
+      
+      // First get all teachers
+      const teachersData = await getTeachers();
+      let fixedCount = 0;
+      
+      // Loop through each teacher and check for missing fields
+      for (const teacher of teachersData) {
+        let needsUpdate = false;
+        const updates = {};
+        
+        // Check for missing monthlySalary
+        if (teacher.monthlySalary === undefined || teacher.monthlySalary === null) {
+          updates.monthlySalary = 0;
+          needsUpdate = true;
+        }
+        
+        // Check for missing designation
+        if (!teacher.designation) {
+          updates.designation = 'استاد';
+          needsUpdate = true;
+        }
+        
+        // Check for missing contactNumber
+        if (!teacher.contactNumber && teacher.phoneNumber) {
+          updates.contactNumber = teacher.phoneNumber;
+          needsUpdate = true;
+        } else if (!teacher.contactNumber && !teacher.phoneNumber) {
+          updates.contactNumber = '';
+          updates.phoneNumber = '';
+          needsUpdate = true;
+        }
+        
+        // Check for missing workingHours
+        if (!teacher.workingHours) {
+          updates.workingHours = {
+            startTime: '08:00',
+            endTime: '16:00'
+          };
+          needsUpdate = true;
+        }
+        
+        // If needs update, update the teacher
+        if (needsUpdate) {
+          console.log(`Updating teacher ${teacher.name} with:`, updates);
+          await updateTeacher(teacher._id, { ...teacher, ...updates });
+          fixedCount++;
+        }
+      }
+      
+      console.log(`Fixed ${fixedCount} teacher records`);
+      
+      // Refetch teachers after updates
+      if (fixedCount > 0) {
+        await fetchTeachers();
+      }
+      
+      return fixedCount;
+    } catch (error) {
+      console.error('Error fixing teacher records:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+  
+  // Run migration once when component mounts
+  useEffect(() => {
+    const runMigration = async () => {
+      // Check localStorage to see if migration has been run already
+      const migrationRun = localStorage.getItem('teacherMigrationRun');
+      if (!migrationRun) {
+        const count = await fixExistingTeachers();
+        if (count > 0) {
+          console.log(`Migration completed: ${count} teachers updated`);
+        }
+        localStorage.setItem('teacherMigrationRun', 'true');
+      }
+    };
+    
+    runMigration();
+  }, []);
   
   // Handle logout
   const handleLogout = async () => {
@@ -90,50 +269,84 @@ function TeacherManagement() {
   };
 
   // Open modal for adding new teacher
-  const handleAddTeacher = () => {
+  const handleAddTeacher = async () => {
     setIsEditMode(false);
     setCurrentEditId(null);
+    
+    // Initialize with default values
     setFormData({
       name: '',
-      designation: t('pages.teacherManagement.defaultDesignation', 'جونیئر استاد'),
-      monthlySalary: '',
+      designation: 'استاد',
+      grNumber: '',
+      monthlySalary: 0,
       contactNumber: '',
       email: '',
       startTime: '08:00',
       endTime: '16:00'
     });
+    
     setIsModalOpen(true);
+    
+    // Auto-generate a GR number by default
+    try {
+      setIsGeneratingGrNumber(true);
+      const uniqueGrNumber = await generateUniqueGrNumber();
+      setFormData(prev => ({
+        ...prev,
+        grNumber: uniqueGrNumber
+      }));
+    } catch (error) {
+      console.error("Error auto-generating initial GR number:", error);
+    } finally {
+      setIsGeneratingGrNumber(false);
+    }
   };
 
-  // Open modal for editing teacher
+  // Edit teacher
   const handleEditTeacher = (teacher) => {
-    setIsEditMode(true);
-    setCurrentEditId(teacher.id);
+    if (!teacher) return;
+    
+    setCurrentEditId(teacher._id);
     setFormData({
-      name: teacher.name,
-      designation: teacher.designation,
-      monthlySalary: teacher.monthlySalary,
-      contactNumber: teacher.contactNumber,
-      email: teacher.email,
-      startTime: teacher.workingHours ? teacher.workingHours.startTime : '08:00',
-      endTime: teacher.workingHours ? teacher.workingHours.endTime : '16:00'
+      name: teacher.name || '',
+      designation: teacher.designation || 'استاد',
+      grNumber: teacher.grNumber || '',
+      monthlySalary: teacher.monthlySalary || 0,
+      startTime: teacher.workingHours?.startTime || '08:00',
+      endTime: teacher.workingHours?.endTime || '16:00',
+      contactNumber: teacher.phoneNumber || teacher.contactNumber || '',
+      email: teacher.email || '',
     });
-    setGeneratedUsername(teacher.username);
+    
+    setIsEditMode(true);
     setIsModalOpen(true);
   };
 
-  // Handle teacher deletion
+  // Delete teacher
   const handleDeleteTeacher = async (id) => {
-    if (window.confirm(t('pages.teacherManagement.confirmDelete', 'کیا آپ واقعی اس استاد کو حذف کرنا چاہتے ہیں؟'))) {
-      setIsLoading(true);
-      try {
-        await deleteTeacher(id);
-        setTeachers(prevTeachers => prevTeachers.filter(teacher => teacher.id !== id));
-      } catch (error) {
-        console.error('Error deleting teacher:', error);
-      } finally {
-        setIsLoading(false);
+    try {
+      if (!id) {
+        alert(t('pages.teacherManagement.errors.noId'));
+        return;
       }
+      
+      const confirmDelete = window.confirm(t('pages.teacherManagement.confirmDelete'));
+      if (!confirmDelete) return;
+      
+      setIsLoading(true);
+      
+      const result = await deleteTeacher(id);
+      if (result) {
+        setTeachers(teachers.filter(teacher => teacher._id !== id));
+        alert(t('pages.teacherManagement.deleteSuccess'));
+      } else {
+        throw new Error(t('pages.teacherManagement.errors.deleteError'));
+      }
+    } catch (error) {
+      console.error('Error deleting teacher:', error);
+      alert(error.message);
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -156,24 +369,39 @@ function TeacherManagement() {
       // Safely convert monthlySalary to number
       let monthlySalary = 0;
       try {
-        monthlySalary = formData.monthlySalary ? Number(formData.monthlySalary) : 0;
+        monthlySalary = formData.monthlySalary ? parseInt(formData.monthlySalary, 10) : 0;
+        if (isNaN(monthlySalary)) monthlySalary = 0;
       } catch (error) {
         console.error('Error converting salary to number:', error);
+      }
+
+      // Validate GR number if provided - must be exactly 5 digits
+      if (formData.grNumber && formData.grNumber.length !== 5) {
+        setIsLoading(false);
+        return alert('GR Number must be exactly 5 digits');
       }
       
       const teacherData = {
         name: teacherName,
         username: username,
+        grNumber: formData.grNumber || '',
         designation: formData.designation || 'استاد',
         monthlySalary: monthlySalary,
-        joiningDate: new Date().toLocaleDateString('ur-PK'),
+        joiningDate: new Date().toLocaleDateString('en-US', {year: 'numeric', month: 'short', day: 'numeric'}),
         contactNumber: formData.contactNumber || '',
+        phoneNumber: formData.contactNumber || '',
         email: formData.email || `${username}@hazrisystem.com`,
         workingHours: {
           startTime: formData.startTime || '08:00',
           endTime: formData.endTime || '16:00'
         }
       };
+      
+      console.log("Form data before submission:", {
+        salary: monthlySalary,
+        contact: formData.contactNumber,
+        designation: formData.designation
+      });
       
       if (isEditMode) {
         // Update existing teacher
@@ -186,7 +414,7 @@ function TeacherManagement() {
         // For updates, make sure to keep the existing password
         // Get the existing teacher data to get the password
         const existingTeachers = await getTeachers();
-        const existingTeacher = existingTeachers.find(t => t.id === currentEditId);
+        const existingTeacher = existingTeachers.find(t => t._id === currentEditId);
         
         if (existingTeacher && existingTeacher.password) {
           console.log("Found existing password, preserving it in update");
@@ -200,85 +428,57 @@ function TeacherManagement() {
         
         await updateTeacher(currentEditId, teacherData);
         
+        // Ensure the updated data in state has the proper numeric type for monthlySalary
         setTeachers(prevTeachers => 
           prevTeachers.map(teacher => 
-            teacher.id === currentEditId ? { ...teacher, ...teacherData, id: currentEditId } : teacher
+            teacher._id === currentEditId ? { 
+              ...teacher, 
+              ...teacherData, 
+              _id: currentEditId,
+              monthlySalary: Number(teacherData.monthlySalary)
+            } : teacher
           )
         );
+        console.log("Updated teacher in state with salary:", Number(teacherData.monthlySalary));
         setIsModalOpen(false);
       } else {
-        // Add new teacher with generated ID and password
+        // Add new teacher with generated password
         const newPassword = generatePassword();
         setGeneratedPassword(newPassword);
+        setGeneratedUsername(username);
+        
+        // Add password to teacher data
+        teacherData.password = newPassword;
+        teacherData.plainPassword = newPassword;
         
         try {
-          // First create a Firebase Authentication account for the teacher
-          const email = teacherData.email || `${username}@hazrisystem.com`;
-          console.log("Creating teacher with email:", email);
-          console.log("Generated password:", newPassword);
+          // Use the API to add a new teacher
+          const result = await addTeacher(teacherData);
+          console.log("Teacher added successfully:", result);
           
-          // Save the password in teacherData for Firestore
-          teacherData.password = newPassword;
-          
-          // Generate a unique ID that will be consistent
-          const teacherId = username + Date.now().toString();
-          console.log("Generated teacher ID:", teacherId);
-
-          // Try to create Firebase Authentication account
-          try {
-            await createUserAccount(email, newPassword);
-            console.log("Firebase Authentication account created successfully");
-          } catch (authError) {
-            console.error('Error creating authentication account:', authError);
-            // If the error is not because the account already exists, throw it
-            if (authError.code !== 'auth/email-already-in-use') {
-              throw new Error(`توثیقی اکاؤنٹ بنانے میں خرابی: ${authError.message}`);
-            } else {
-              console.log("User already exists in authentication, continuing with Firestore update");
-            }
-          }
-          
-          // Now add teacher to Firestore with the same password
-          try {
-            // Make sure the teachers collection exists
-            const teachersRef = collection(db, 'teachers');
-            
-            // Add the document with explicit ID
-            console.log("Adding teacher document with data");
-            
-            // Use direct setDoc call to Firestore
-            await setDoc(doc(db, 'teachers', teacherId), {
-              ...teacherData,
-              password: newPassword, // Ensure password is included
-              createdAt: new Date().toISOString()
-            });
-            
-            console.log(`Teacher added with ID: ${teacherId} successfully`);
-            
+          if (result) {
+            // Add the new teacher to the state
             const newTeacher = {
-              id: teacherId,
+              ...result,
               ...teacherData,
-              password: newPassword
+              monthlySalary: Number(teacherData.monthlySalary)
             };
             
             setTeachers(prevTeachers => [...prevTeachers, newTeacher]);
-            setGeneratedUsername(username);
+            console.log("Added new teacher to state with salary:", Number(teacherData.monthlySalary));
             
-            // Show the credentials
-            alert(`استاد کا اکاؤنٹ کامیابی سے بنا دیا گیا!\n\nصارف نام: ${username}\nای میل: ${email}\nپاس ورڈ: ${newPassword}`);
+            // Show success message
+            alert(`استاد کا اکاؤنٹ کامیابی سے بنا دیا گیا!\n\nصارف نام: ${username}\nپاس ورڈ: ${newPassword}`);
             
             // Close the modal
             setIsModalOpen(false);
             
             // Refresh the teachers list
             fetchTeachers();
-          } catch (firestoreError) {
-            console.error('Error writing to Firestore:', firestoreError);
-            alert(`فائربیس میں استاد کا ڈیٹا شامل کرنے میں خرابی: ${firestoreError.message}`);
           }
         } catch (error) {
-          console.error('Error in teacher creation process:', error);
-          alert(`خطا: ${error.message}`);
+          console.error('Error creating teacher:', error);
+          alert(`خطا: ${error.message || 'Unknown error occurred'}`);
         }
       }
     } catch (error) {
@@ -286,6 +486,103 @@ function TeacherManagement() {
       alert(`خطا: ${error.message || 'Unknown error occurred'}`);
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  // Handle select all checkbox change
+  const handleSelectAll = () => {
+    const newSelectAllValue = !selectAll;
+    setSelectAll(newSelectAllValue);
+    
+    if (newSelectAllValue) {
+      // Select all filtered teachers
+      const selectedIds = filteredTeachers.map(teacher => teacher._id);
+      setSelectedTeachers(selectedIds);
+    } else {
+      // Deselect all
+      setSelectedTeachers([]);
+    }
+  };
+  
+  // Handle individual checkbox change
+  const handleSelectTeacher = (teacherId) => {
+    if (selectedTeachers.includes(teacherId)) {
+      // Remove from selection
+      setSelectedTeachers(selectedTeachers.filter(id => id !== teacherId));
+      setSelectAll(false);
+    } else {
+      // Add to selection
+      setSelectedTeachers([...selectedTeachers, teacherId]);
+      
+      // Check if all filtered teachers are now selected
+      if (selectedTeachers.length + 1 === filteredTeachers.length) {
+        setSelectAll(true);
+      }
+    }
+  };
+  
+  // Handle bulk delete
+  const handleBulkDelete = async () => {
+    if (selectedTeachers.length === 0) {
+      alert(t('pages.teacherManagement.errors.noSelection', 'No teachers selected'));
+      return;
+    }
+    
+    const confirmDelete = window.confirm(
+      t('pages.teacherManagement.confirmBulkDelete', 
+        `Are you sure you want to delete ${selectedTeachers.length} selected teachers?`)
+    );
+    
+    if (!confirmDelete) return;
+    
+    setIsLoading(true);
+    
+    try {
+      let failedCount = 0;
+      
+      // Delete each selected teacher
+      for (const id of selectedTeachers) {
+        try {
+          await deleteTeacher(id);
+        } catch (error) {
+          console.error(`Error deleting teacher ${id}:`, error);
+          failedCount++;
+        }
+      }
+      
+      // Refresh teacher list
+      await fetchTeachers();
+      
+      // Reset selection
+      setSelectedTeachers([]);
+      setSelectAll(false);
+      
+      if (failedCount > 0) {
+        alert(`${selectedTeachers.length - failedCount} teachers deleted successfully. ${failedCount} deletions failed.`);
+      } else {
+        alert(`${selectedTeachers.length} teachers deleted successfully.`);
+      }
+    } catch (error) {
+      console.error('Error in bulk delete operation:', error);
+      alert(error.message || t('pages.teacherManagement.errors.bulkDeleteError', 'Error deleting teachers'));
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Handle auto-generate GR number
+  const handleAutoGenerateGrNumber = async () => {
+    setIsGeneratingGrNumber(true);
+    try {
+      const uniqueGrNumber = await generateUniqueGrNumber();
+      setFormData(prev => ({
+        ...prev,
+        grNumber: uniqueGrNumber
+      }));
+    } catch (error) {
+      console.error("Error auto-generating GR number:", error);
+    } finally {
+      setIsGeneratingGrNumber(false);
     }
   };
 
@@ -357,6 +654,38 @@ function TeacherManagement() {
                   className="form-control"
                   placeholder={t('pages.teacherManagement.form.namePlaceholder')}
                 />
+              </div>
+
+              <div className="form-group">
+                <label htmlFor="grNumber">GR Number (5 digits):</label>
+                <div className="input-with-button">
+                  <input
+                    type="text"
+                    id="grNumber"
+                    name="grNumber"
+                    value={formData.grNumber}
+                    onChange={handleInputChange}
+                    maxLength="5"
+                    pattern="[0-9]{5}"
+                    className="form-control"
+                    placeholder="12345"
+                    title="GR Number must be exactly 5 digits"
+                  />
+                  <button 
+                    type="button" 
+                    className="auto-generate-button"
+                    onClick={handleAutoGenerateGrNumber}
+                    disabled={isGeneratingGrNumber}
+                    title="Auto-generate unique GR number"
+                  >
+                    {isGeneratingGrNumber ? (
+                      <i className="fas fa-spinner fa-spin"></i>
+                    ) : (
+                      <i className="fas fa-magic"></i>
+                    )}
+                  </button>
+                </div>
+                <small className="form-text text-muted">Click the magic wand button to auto-generate a unique GR number</small>
               </div>
               
               <div className="form-row">
@@ -483,6 +812,14 @@ function TeacherManagement() {
           <button className="add-teacher-button" onClick={handleAddTeacher}>
             <i className="fas fa-user-plus"></i> {t('pages.teacherManagement.addTeacher')}
           </button>
+          <button className="repair-button" onClick={() => fixExistingTeachers()} title="Fix any missing teacher data like salary, contact, etc.">
+            <i className="fas fa-tools"></i> {t('Fix Data', 'Fix Data')}
+          </button>
+          {selectedTeachers.length > 0 && (
+            <button className="delete-selected-button" onClick={handleBulkDelete}>
+              <i className="fas fa-trash-alt"></i> {t('pages.teacherManagement.deleteSelected', 'Delete Selected')} ({selectedTeachers.length})
+            </button>
+          )}
         </div>
       </header>
 
@@ -491,7 +828,17 @@ function TeacherManagement() {
         <table className="data-table">
           <thead>
             <tr>
+              <th className="checkbox-column">
+                <input 
+                  type="checkbox" 
+                  checked={selectAll} 
+                  onChange={handleSelectAll} 
+                  className="select-checkbox"
+                  title={selectAll ? t('pages.teacherManagement.deselectAll', 'Deselect All') : t('pages.teacherManagement.selectAll', 'Select All')}
+                />
+              </th>
               <th>{t('pages.teacherManagement.table.name')}</th>
+              <th>GR Number</th>
               <th>{t('pages.teacherManagement.table.username')}</th>
               <th>{t('pages.teacherManagement.table.designation')}</th>
               <th>{t('pages.teacherManagement.table.salary')}</th>
@@ -506,18 +853,32 @@ function TeacherManagement() {
             {filteredTeachers.length > 0 ? (
               filteredTeachers.map((teacher) => (
                 <tr key={teacher?.id || Math.random()}>
+                  <td className="checkbox-column">
+                    <input 
+                      type="checkbox"
+                      checked={selectedTeachers.includes(teacher?._id)}
+                      onChange={() => handleSelectTeacher(teacher?._id)}
+                      className="select-checkbox"
+                    />
+                  </td>
                   <td>{teacher?.name || '-'}</td>
+                  <td>{teacher?.grNumber || 'Not Assigned'}</td>
                   <td>{teacher?.username || '-'}</td>
                   <td>{teacher?.designation || '-'}</td>
-                  <td>Rs. {teacher?.monthlySalary ? teacher.monthlySalary.toLocaleString() : '0'}</td>
-                  <td>{teacher?.workingHours?.startTime || '-'} - {teacher?.workingHours?.endTime || '-'}</td>
-                  <td>{teacher?.joiningDate || '-'}</td>
+                  <td>Rs. {(teacher?.monthlySalary !== undefined && teacher?.monthlySalary !== null) ? 
+                    Number(teacher.monthlySalary).toLocaleString() : '0'}</td>
+                  <td>
+                    {teacher?.workingHours?.startTime && teacher?.workingHours?.endTime 
+                      ? `${teacher.workingHours.startTime} - ${teacher.workingHours.endTime}`
+                      : '-'}
+                  </td>
+                  <td>{formatJoiningDate(teacher?.joiningDate)}</td>
                   <td>{teacher?.contactNumber || '-'}</td>
                   <td>{teacher?.email || '-'}</td>
                   <td className="action-cell">
-                    <Link to={`/admin/teacher/${encodeURIComponent(teacher?.id || '')}`} className="table-action view" onClick={(e) => {
-                      console.log("Navigating to teacher profile with ID:", teacher?.id);
-                      if (!teacher?.id) {
+                    <Link to={`/admin/teacher/${encodeURIComponent(teacher?._id || '')}`} className="table-action view" onClick={(e) => {
+                      console.log("Navigating to teacher profile with ID:", teacher?._id);
+                      if (!teacher?._id) {
                         e.preventDefault();
                         alert(t('pages.teacherManagement.errors.noId'));
                       }
@@ -527,7 +888,7 @@ function TeacherManagement() {
                     <button className="table-action edit" onClick={() => handleEditTeacher(teacher)}>
                       <i className="fas fa-edit"></i>
                     </button>
-                    <button className="table-action delete" onClick={() => handleDeleteTeacher(teacher?.id)}>
+                    <button className="table-action delete" onClick={() => handleDeleteTeacher(teacher?._id)}>
                       <i className="fas fa-trash-alt"></i>
                     </button>
                   </td>
@@ -535,7 +896,7 @@ function TeacherManagement() {
               ))
             ) : (
               <tr>
-                <td colSpan="9" className="empty-message">
+                <td colSpan="10" className="empty-message">
                   <i className="fas fa-user-slash"></i> {t('pages.teacherManagement.noTeachersFound')}
                 </td>
               </tr>

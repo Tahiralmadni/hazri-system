@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
-import { getTeacherAttendance, getAttendanceSummary, getTeacher } from '../../services/firebase';
+import { getTeacherAttendance, getAttendanceSummary, getTeacherById, deleteAttendanceRecord } from '../../services/api';
 import '../../App.css';
 import { ThemeToggle } from '../../components/ui/ThemeToggle';
 import { LanguageSwitcher } from '../../components/ui/LanguageSwitcher';
@@ -49,6 +49,8 @@ function TeacherAttendance() {
   const [errorState, setErrorState] = useState(false);
   const [loadingError, setLoadingError] = useState(null);
   const [showAllMonths, setShowAllMonths] = useState(false);
+  const [selectedRecords, setSelectedRecords] = useState([]);
+  const [selectAll, setSelectAll] = useState(false);
 
   const { currentUser, logout } = useAuth();
   const navigate = useNavigate();
@@ -97,7 +99,7 @@ function TeacherAttendance() {
 
     try {
       // Load teacher data first
-      const teacher = await getTeacher(currentUser.id);
+      const teacher = await getTeacherById(currentUser.id);
       if (teacher) {
         setTeacherData(teacher);
       } else {
@@ -194,6 +196,103 @@ function TeacherAttendance() {
   const getMonthName = (monthNum) => {
     const month = months.find(m => m.value === monthNum);
     return month ? month.label : '';
+  };
+
+  // Handle select all checkbox change
+  const handleSelectAll = () => {
+    const newSelectAllValue = !selectAll;
+    setSelectAll(newSelectAllValue);
+    
+    if (newSelectAllValue) {
+      // Select all filtered records
+      const selectedIds = filteredRecords.map(record => record._id);
+      setSelectedRecords(selectedIds);
+    } else {
+      // Deselect all
+      setSelectedRecords([]);
+    }
+  };
+  
+  // Handle individual checkbox change
+  const handleSelectRecord = (recordId) => {
+    if (selectedRecords.includes(recordId)) {
+      // Remove from selection
+      setSelectedRecords(selectedRecords.filter(id => id !== recordId));
+      setSelectAll(false);
+    } else {
+      // Add to selection
+      setSelectedRecords([...selectedRecords, recordId]);
+      
+      // Check if all filtered records are now selected
+      if (selectedRecords.length + 1 === filteredRecords.length) {
+        setSelectAll(true);
+      }
+    }
+  };
+  
+  // Handle bulk delete
+  const handleBulkDelete = async () => {
+    if (selectedRecords.length === 0) {
+      alert(t('pages.teacherAttendance.errors.noSelection', 'No records selected'));
+      return;
+    }
+    
+    const confirmDelete = window.confirm(
+      t('pages.teacherAttendance.confirmBulkDelete', 
+        `Are you sure you want to delete ${selectedRecords.length} selected attendance records?`)
+    );
+    
+    if (!confirmDelete) return;
+    
+    setIsLoading(true);
+    
+    try {
+      let successCount = 0;
+      let failedCount = 0;
+      let errorMessages = [];
+      
+      // Delete each selected record
+      for (const id of selectedRecords) {
+        try {
+          console.log(`Attempting to delete record ${id}...`);
+          const result = await deleteAttendanceRecord(id);
+          
+          if (result.success) {
+            successCount++;
+          } else {
+            failedCount++;
+            errorMessages.push(`ID ${id}: ${result.message}`);
+          }
+        } catch (error) {
+          console.error(`Error deleting attendance record ${id}:`, error);
+          failedCount++;
+          errorMessages.push(`ID ${id}: ${error.message || 'Unknown error'}`);
+        }
+      }
+      
+      // Reset selection
+      setSelectedRecords([]);
+      setSelectAll(false);
+      
+      // Show appropriate message based on results
+      if (failedCount > 0) {
+        const errorDetails = errorMessages.length > 0 ? 
+          `\n\nError details:\n${errorMessages.slice(0, 5).join('\n')}${errorMessages.length > 5 ? '\n...' : ''}` : '';
+          
+        alert(`${successCount} records deleted successfully. ${failedCount} deletions failed.${errorDetails}`);
+      } else {
+        alert(`${successCount} records deleted successfully.`);
+      }
+      
+      // Refresh attendance data
+      await loadAttendanceData();
+      
+    } catch (error) {
+      console.error('Error in bulk delete operation:', error);
+      alert(error.message || t('pages.teacherAttendance.errors.bulkDeleteError', 'Error deleting records'));
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -309,7 +408,7 @@ function TeacherAttendance() {
               </select>
             </div>
           </div>
-          <div className="filter-group">
+          <div className="filter-group action-buttons">
             <button
               className="action-button"
               onClick={handleRefresh}
@@ -317,6 +416,15 @@ function TeacherAttendance() {
             >
               <i className={`fas fa-sync ${isLoading ? 'fa-spin' : ''}`}></i> {t('components.buttons.refresh')}
             </button>
+            {selectedRecords.length > 0 && (
+              <button
+                className="action-button delete-selected-button"
+                onClick={handleBulkDelete}
+                disabled={isLoading}
+              >
+                <i className="fas fa-trash-alt"></i> {t('pages.teacherAttendance.deleteSelected', 'Delete Selected')} ({selectedRecords.length})
+              </button>
+            )}
           </div>
         </div>
       </header>
@@ -362,6 +470,15 @@ function TeacherAttendance() {
         <table className="data-table">
           <thead>
             <tr>
+              <th className="checkbox-column">
+                <input 
+                  type="checkbox" 
+                  checked={selectAll} 
+                  onChange={handleSelectAll} 
+                  className="select-checkbox"
+                  title={selectAll ? t('pages.teacherAttendance.deselectAll', 'Deselect All') : t('pages.teacherAttendance.selectAll', 'Select All')}
+                />
+              </th>
               <th>{t('pages.attendanceRecords.table.date')}</th>
               <th>{t('pages.attendanceRecords.table.status')}</th>
               <th>{t('pages.attendanceRecords.table.checkIn')}</th>
@@ -375,6 +492,14 @@ function TeacherAttendance() {
             {filteredRecords.length > 0 ? (
               filteredRecords.map((record, index) => (
                 <tr key={index}>
+                  <td className="checkbox-column">
+                    <input 
+                      type="checkbox"
+                      checked={selectedRecords.includes(record._id)}
+                      onChange={() => handleSelectRecord(record._id)}
+                      className="select-checkbox"
+                    />
+                  </td>
                   <td>{record.date}</td>
                   <td>
                     {record.status === 'present' ? (
@@ -391,8 +516,8 @@ function TeacherAttendance() {
                       </span>
                     )}
                   </td>
-                  <td>{record.checkIn ? formatTime(record.checkIn) : '-'}</td>
-                  <td>{record.checkOut ? formatTime(record.checkOut) : '-'}</td>
+                  <td>{(record.timeIn || record.checkIn) ? formatTime(record.timeIn || record.checkIn) : '-'}</td>
+                  <td>{(record.timeOut || record.checkOut) ? formatTime(record.timeOut || record.checkOut) : '-'}</td>
                   <td>{record.workHours || '0.00'}</td>
                   <td>
                     <div className="status-flags">
@@ -412,7 +537,7 @@ function TeacherAttendance() {
               ))
             ) : (
               <tr>
-                <td colSpan="7" className="empty-message">
+                <td colSpan="8" className="empty-message">
                   <i className="fas fa-clipboard-list"></i> {t('pages.teacherAttendance.noRecordsFound')}
                 </td>
               </tr>

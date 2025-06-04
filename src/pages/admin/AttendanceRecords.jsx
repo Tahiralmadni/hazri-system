@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
-import { getTeachers, getAllAttendance } from '../../services/firebase';
+import { getTeachers, getAllAttendance, deleteAttendanceRecord } from '../../services/api';
 import '../../App.css';
 import { ThemeToggle } from '../../components/ui/ThemeToggle';
 import { LanguageSwitcher } from '../../components/ui/LanguageSwitcher';
@@ -35,6 +35,9 @@ function AttendanceRecords() {
   const [selectedStatus, setSelectedStatus] = useState('all');
   const [selectedTeacher, setSelectedTeacher] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  // Add states for multiple selection
+  const [selectedRecords, setSelectedRecords] = useState([]);
+  const [selectAll, setSelectAll] = useState(false);
 
   const { currentUser, logout } = useAuth();
   const navigate = useNavigate();
@@ -95,6 +98,96 @@ function AttendanceRecords() {
   const totalSalaryDeduction = filteredRecords.reduce((total, record) => {
     return total + (record.salaryDeduction || 0);
   }, 0);
+
+  // Handle select all checkbox change
+  const handleSelectAll = () => {
+    const newSelectAllValue = !selectAll;
+    setSelectAll(newSelectAllValue);
+    
+    if (newSelectAllValue) {
+      // Select all filtered records
+      const selectedIds = filteredRecords.map(record => record._id);
+      setSelectedRecords(selectedIds);
+    } else {
+      // Deselect all
+      setSelectedRecords([]);
+    }
+  };
+  
+  // Handle individual checkbox change
+  const handleSelectRecord = (recordId) => {
+    if (selectedRecords.includes(recordId)) {
+      // Remove from selection
+      setSelectedRecords(selectedRecords.filter(id => id !== recordId));
+      setSelectAll(false);
+    } else {
+      // Add to selection
+      setSelectedRecords([...selectedRecords, recordId]);
+      
+      // Check if all filtered records are now selected
+      if (selectedRecords.length + 1 === filteredRecords.length) {
+        setSelectAll(true);
+      }
+    }
+  };
+  
+  // Handle bulk delete
+  const handleBulkDelete = async () => {
+    if (selectedRecords.length === 0) {
+      alert(t('pages.attendanceRecords.errors.noSelection', 'No records selected'));
+      return;
+    }
+    
+    const confirmDelete = window.confirm(
+      t('pages.attendanceRecords.confirmBulkDelete', 
+        `Are you sure you want to delete ${selectedRecords.length} selected attendance records?`)
+    );
+    
+    if (!confirmDelete) return;
+    
+    setIsLoading(true);
+    
+    try {
+      let failedCount = 0;
+      
+      // Delete each selected record
+      for (const id of selectedRecords) {
+        try {
+          await deleteAttendanceRecord(id);
+        } catch (error) {
+          console.error(`Error deleting attendance record ${id}:`, error);
+          failedCount++;
+        }
+      }
+      
+      // Refresh records list by loading data again
+      const loadData = async () => {
+        try {
+          // Load attendance records
+          const attendanceData = await getAllAttendance();
+          setRecords(attendanceData);
+        } catch (error) {
+          console.error('Error loading data:', error);
+        }
+      };
+      await loadData();
+      
+      // Reset selection
+      setSelectedRecords([]);
+      setSelectAll(false);
+      
+      if (failedCount > 0) {
+        alert(`${selectedRecords.length - failedCount} records deleted successfully. ${failedCount} deletions failed.`);
+      } else {
+        alert(`${selectedRecords.length} records deleted successfully.`);
+      }
+    } catch (error) {
+      console.error('Error in bulk delete operation:', error);
+      alert(error.message || t('pages.attendanceRecords.errors.bulkDeleteError', 'Error deleting records'));
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   return (
     <div className="dashboard">
@@ -215,6 +308,15 @@ function AttendanceRecords() {
               >
                 <i className={`fas fa-sync ${isLoading ? 'fa-spin' : ''}`}></i> {t('components.buttons.refresh')}
               </button>
+              {selectedRecords.length > 0 && (
+                <button
+                  onClick={handleBulkDelete}
+                  className="delete-selected-button"
+                  disabled={isLoading}
+                >
+                  <i className="fas fa-trash-alt"></i> {t('pages.attendanceRecords.deleteSelected', 'Delete Selected')} ({selectedRecords.length})
+                </button>
+              )}
             </div>
           </div>
         </div>
@@ -279,6 +381,15 @@ function AttendanceRecords() {
         <table className="data-table">
           <thead>
             <tr>
+              <th className="checkbox-column">
+                <input 
+                  type="checkbox" 
+                  checked={selectAll} 
+                  onChange={handleSelectAll} 
+                  className="select-checkbox"
+                  title={selectAll ? t('pages.attendanceRecords.deselectAll', 'Deselect All') : t('pages.attendanceRecords.selectAll', 'Select All')}
+                />
+              </th>
               <th>{t('pages.attendanceRecords.table.date')}</th>
               <th>{t('pages.attendanceRecords.table.teacher')}</th>
               <th>{t('pages.attendanceRecords.table.status')}</th>
@@ -293,6 +404,14 @@ function AttendanceRecords() {
             {filteredRecords.length > 0 ? (
               filteredRecords.map((record, index) => (
                 <tr key={index}>
+                  <td className="checkbox-column">
+                    <input 
+                      type="checkbox"
+                      checked={selectedRecords.includes(record._id)}
+                      onChange={() => handleSelectRecord(record._id)}
+                      className="select-checkbox"
+                    />
+                  </td>
                   <td>{record.date}</td>
                   <td>{record.teacherName || getTeacherNameById(record.teacherId)}</td>
                   <td>
@@ -324,6 +443,7 @@ function AttendanceRecords() {
                       {record.notes && (
                         <span className="notes-text">{record.notes}</span>
                       )}
+                      {!record.isLate && !record.isShortDay && !record.notes && '-'}
                     </div>
                   </td>
                   <td>{calculateDetailedDeduction(record)}</td>
@@ -331,7 +451,7 @@ function AttendanceRecords() {
               ))
             ) : (
               <tr>
-                <td colSpan="8" className="empty-message">
+                <td colSpan="9" className="empty-message">
                   <i className="fas fa-info-circle"></i> {t('pages.attendanceRecords.noRecordsFound')}
                 </td>
               </tr>
